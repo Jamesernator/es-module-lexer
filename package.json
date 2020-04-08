@@ -1,0 +1,27 @@
+{
+  "name": "@jamesernator/es-module-lexer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha ./test/*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jamesernator/es-module-lexer.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Jamesernator/es-module-lexer/issues"
+  },
+  "homepage": "https://github.com/Jamesernator/es-module-lexer#readme",
+  "devDependencies": {
+    "@jsxt/eslint-config-typescript": "^3.4.4",
+    "@typescript-eslint/eslint-plugin": "^2.27.0",
+    "@typescript-eslint/parser": "^2.27.0",
+    "eslint": "^6.8.0",
+    "eslint-plugin-import": "^2.20.2",
+    "typescript": "^3.8.3"
+  }
+}
