@@ -17,8 +17,8 @@ type Export = {
 type DynamicImport = {
     startPosition: number,
     endPosition: number,
-    startContentPosition: number,
-    endContentPosition: number,
+    contentEndPosition: number,
+    contentStartPosition: number,
 };
 
 type ImportMeta = {
@@ -31,42 +31,72 @@ type UnclosedDynamicImport = {
     startContentPosition: number,
 };
 
-export default function parseImportsAndExports(code: string) {
+
+function isPunctuator(char: string) {
+    const codePoint = char.codePointAt(0)!;
+    return char === "!"
+        || char === "%"
+        || char === "&"
+        || codePoint > 39 && codePoint < 48
+        || codePoint > 57 && codePoint < 64
+        || char === "["
+        || char === "]"
+        || char === "^"
+        || codePoint > 122 && codePoint < 127;
+}
+
+function isNewline(char: string) {
+    return char === "\r" || char === "\n";
+}
+
+function isNewlineOrWhitespace(char: string) {
+    const codePoint = char.codePointAt(0)!;
+    return codePoint > 8 && codePoint < 14
+        || codePoint === 32
+        || codePoint === 160;
+}
+
+function isNewlineOrWhitespaceOrPunctuator(char: string) {
+    return isNewlineOrWhitespace(char) || isPunctuator(char);
+}
+
+function isNewlineOrWhitespaceOrPunctuatorNotDot(char: string) {
+    return (isNewlineOrWhitespace(char) || isPunctuator(char))
+        && char !== ".";
+}
+
+type Result = {
+    imports: Array<Import>,
+    exports: Array<Export>,
+    importMetas: Array<ImportMeta>,
+    dynamicImports: Array<DynamicImport>,
+};
+
+function tokenize() {
+
+}
+
+export default function parseImportsAndExports(code: string): Result {
     const imports: Array<Import> = [];
     const exports: Array<Export> = [];
     const importMetas: Array<ImportMeta> = [];
     const dynamicImports: Array<DynamicImport> = [];
 
+    const tokens = new Uint16Array();
+
     let position = 0;
-    const lastPsuedoToken: string | null = null;
-    const templateStack: Array<number> = [];
-    const unclosedDynamicImports: Array<UnclosedDynamicImport> = [];
+    const lastToken: string | null = null;
+    const currentToken: string | null = null;
+    let openTemplateCount = 0;
 
     const peek = (count: number=1) => {
         return code.slice(position, position + count);
     };
 
-    function consumePseudoToken(): string {
-        const startPosition = position;
-
-        const firstChar = peek();
-        if (isPunctuator(firstChar)) {
-            position += 1;
-            return firstChar;
-        }
-
-        while (!isNewlineOrWhitespaceOrPunctuator(peek(1))) {
-            position += 1;
-        }
-
-        return code.slice(startPosition, position);
-    }
-
-    function peekPseudoToken(): string {
-        const startPosition = position;
-        const token = consumePseudoToken();
-        position = startPosition;
-        return token;
+    function consumeChar() {
+        const char = code[position];
+        position += 1;
+        return char;
     }
 
     function consumeString(string: string): string {
@@ -79,7 +109,103 @@ export default function parseImportsAndExports(code: string) {
         return string;
     }
 
+    function consumeTemplateLiteralPart() {
+        const first = consumeChar();
+        while (position < code.length && peek(1) !== "`" && peek(2) !== "${") {
+            if (peek(1) === "\\") {
+                position += 1;
+            }
+            position += 1;
+        }
+        if (position === code.length) {
+            throw new SyntaxError();
+        }
+        if (first === "`") {
+            if (peek(1) === "`") {
+                consumeString("`");
+                return { type: "template" as const };
+            }
+            consumeString("${");
+            return { type: "templateStart" as const };
+        }
+
+        if (peek(1) === "`") {
+            consumeString("`");
+            return { type: "templateEnd" as const };
+        }
+        consumeString("${");
+        return { type: "templateContinue" as const };
+    }
+
+    function consumePunctuator() {
+        const char = consumeChar();
+        if (!isPunctuator(char)) {
+            throw new SyntaxError();
+        }
+        return char;
+    }
+
+    function consumeSequence() {
+        const startPosition = position;
+        while (position < code.length
+        && !isNewlineOrWhitespaceOrPunctuator(peek())) {
+            position += 1;
+        }
+        return code.slice(startPosition, position);
+    }
+
+    function consumeToken() {
+        if (peek() === "`") {
+            const token = consumeTemplateLiteralPart();
+            if (token.type === "templateStart") {
+                openTemplateCount += 1;
+            }
+            return token;
+        } else if (peek() === "}" && openTemplateCount > 0) {
+            const token = consumeTemplateLiteralPart();
+            if (token.type === "templateEnd") {
+                openTemplateCount -= 1;
+            }
+            return token;
+        } else if (peek() === `'` || peek() === `"`) {
+            return {
+                type: "stringLiteral" as const,
+                source: consumeStringLiteral(),
+            };
+        } else if (isPunctuator(peek())) {
+            return { type: "punctuator", source: consumePunctuator() };
+        } else if (peek() === "/") {
+            throw new Error("TODO");
+        }
+        return { type: "other", source: consumeSequence() };
+    }
+
+    function peekToken() {
+        const startPosition = position;
+        consumeToken();
+        const endPosition = position;
+        position = startPosition;
+        return code.slice(startPosition, endPosition);
+    }
+
+    function consumeContent(terminator: string | null=null) {
+        while (position < code.length) {
+            if (peekToken() === terminator) {
+                return;
+            } else if (peekToken() === "import") {
+                consumeImport();
+            } else if (peekToken() === "export") {
+                consumeExport();
+            } else if (peekToken() === "(") {
+                consumeContent(")");
+            } else {
+                consumeToken();
+            }
+        }
+    }
+
     function consumeStringLiteral() {
+        const startPosition = position;
         const startQuote = code[position];
         if (startQuote !== `'` && startQuote !== `"`) {
             throw new SyntaxError();
@@ -96,7 +222,7 @@ export default function parseImportsAndExports(code: string) {
             position += 1;
         }
         consumeString(startQuote);
-        return code.slice();
+        return code.slice(startPosition, position);
     }
 
     function consumeImport() {
@@ -105,185 +231,110 @@ export default function parseImportsAndExports(code: string) {
         consumeString("import");
         consumeWhitespaceAndComments();
 
-        const nextToken = consumePseudoToken();
+        function consumeNamespaceImport() {
+            consumeString("*");
+            consumeWhitespaceAndComments();
+            consumeString("as");
+            consumeWhitespaceAndComments();
+            return consumeSequence();
+        }
 
-        consumeWhitespaceAndComments();
+        function consumeNamedImports() {
+            const importedNames: Record<string, string> = Object.create(null);
+            while (peekToken() !== "}") {
+                consumeWhitespaceAndComments();
+                const importedName = consumeSequence();
+                consumeWhitespaceAndComments();
+                if (peekToken() === "as") {
+                    consumeString("as");
+                    consumeWhitespaceAndComments();
+                    const importedAsName = consumeSequence();
+                    importedNames[importedName] = importedAsName;
+                } else {
+                    importedNames[importedName] = importedName;
+                }
 
-        // import.meta
-        if (nextToken === ".") {
-            const prop = consumePseudoToken();
-            if (prop !== "meta") {
+                if (peekToken() === ",") {
+                    consumeString(",");
+                }
+            }
+            consumeString("}");
+            return importedNames;
+        }
+
+        // Dynamic import
+        if (peekToken() === "(") {
+            consumeString("(");
+            consumeWhitespaceAndComments();
+
+            const contentStartPosition = position;
+            consumeContent(")");
+            const contentEndPosition = position;
+
+            consumeWhitespaceAndComments();
+            consumeString(")");
+            consumeWhitespaceAndComments();
+
+            if (peekToken() !== "{") {
+                dynamicImports.push({
+                    startPosition,
+                    endPosition: position,
+                    contentStartPosition,
+                    contentEndPosition,
+                });
+            }
+            return;
+        // Import.meta
+        } else if (peekToken() === ".") {
+            consumeString(".");
+            consumeWhitespaceAndComments();
+            const prop = consumeToken();
+            if (prop.type !== "other" || prop.source !== "meta") {
                 throw new SyntaxError();
             }
             importMetas.push({
                 startPosition,
                 endPosition: position,
             });
-        // Named imports
-        } else if (nextToken === "{") {
-            const importedNames: Record<string, string> = Object.create(null);
-            while (peekPseudoToken() !== "}") {
+        }
+
+        const importNames: Record<string, string> = Object.create(null);
+
+        if (peekToken() === "{") {
+            Object.assign(importNames, consumeNamedImports());
+        } else if (peekToken() === "*") {
+            importNames["*"] = consumeNamespaceImport();
+        } else if (peekToken() !== "stringLiteral") {
+            const defaultName = consumeSequence();
+            importNames.default = defaultName;
+
+            if (peekToken() === ",") {
                 consumeWhitespaceAndComments();
-                const importedName = consumePseudoToken();
-                consumeWhitespaceAndComments();
-                if (peekPseudoToken() === "as") {
-                    consumeString("as");
-                    consumeWhitespaceAndComments();
-                    const importedAsName = consumePseudoToken();
-                    importedNames[importedName] = importedAsName;
+                if (peekToken() === "*") {
+                    importNames["*"] = consumeNamespaceImport();
+                } else if (peekToken() === "{") {
+                    Object.assign(importNames, consumeNamedImports());
                 } else {
-                    importedNames[importedName] = importedName;
+                    throw new SyntaxError();
                 }
-                consumeWhitespaceAndComments();
-            }
-            consumeString("}");
-            consumeWhitespaceAndComments();
-            consumeString("from");
-            consumeWhitespaceAndComments();
-
-            const specifierString = consumeStringLiteral();
-
-            imports.push({
-                startPosition,
-                endPosition: position,
-                specifierString,
-                imports: importedNames,
-            });
-
-        // star import
-        } else if (nextToken === "*") {
-            consumeWhitespaceAndComments();
-            consumeString("as");
-            consumeWhitespaceAndComments();
-            const importedName = consumePseudoToken();
-            consumeWhitespaceAndComments();
-            consumeString("from");
-            consumeWhitespaceAndComments();
-            const specifierString = consumeStringLiteral();
-
-            imports.push({
-                startPosition,
-                endPosition: position,
-                specifierString,
-                imports: Object.assign(
-                    Object.create(null),
-                    { "*": importedName },
-                ),
-            });
-        } else if (nextToken === "(") {
-
-        }
-    }
-
-    function isExpressionTerminator(position: number) {
-        return isStringAt(position, ";")
-            || isStringAt(position, ")")
-            || doesKeywordEndAt(position, "finally");
-    }
-
-    function isExpressionPunctuator(char: string) {
-        const codePoint = char.codePointAt(0)!;
-        return char === "!"
-            || char === "%"
-            || char === "&"
-            || codePoint > 39 && codePoint < 47 && codePoint !== 41
-            || codePoint > 57 && codePoint < 64
-            || char === "["
-            || char === "^"
-            || codePoint > 122 && codePoint < 127 && char !== "}";
-    }
-
-    function isPunctuator(char: string) {
-        const codePoint = char.codePointAt(0)!;
-        return char === "!"
-            || char === "%"
-            || char === "&"
-            || codePoint > 39 && codePoint < 48
-            || codePoint > 57 && codePoint < 64
-            || char === "["
-            || char === "]"
-            || char === "^"
-            || codePoint > 122 && codePoint < 127;
-    }
-
-    function isNewline(char: string) {
-        return char === "\r" || char === "\n";
-    }
-
-    function isNewlineOrWhitespace(char: string) {
-        const codePoint = char.codePointAt(0)!;
-        return codePoint > 8 && codePoint < 14
-            || codePoint === 32
-            || codePoint === 160;
-    }
-
-    function isNewlineOrWhitespaceOrPunctuator(char: string) {
-        return isNewlineOrWhitespace(char) || isPunctuator(char);
-    }
-
-    function isNewlineOrWhitespaceOrPunctuatorNotDot(char: string) {
-        return (isNewlineOrWhitespace(char) || isPunctuator(char))
-            && char !== ".";
-    }
-
-    function isKeywordStart(position: number) {
-        return position === 0
-            || isNewlineOrWhitespaceOrPunctuatorNotDot(peek(position - 1));
-    }
-
-    function consumeUntilNewlineOrPunctuator(char: string) {
-        while (!isNewlineOrWhitespaceOrPunctuator(char)) {
-            position += 1;
-            char = code[position];
-        }
-    }
-
-    function consumeRegularExpression() {
-        position += 1;
-        while (position < code.length) {
-            const char = peek(1);
-            if (char === "/") {
-                return;
-            } else if (char === "[") {
-                consumeRegexCharacterClass();
-            } else if (char === "\\") {
-                position += 1;
-            } else if (isNewline(char)) {
-                break;
             }
         }
-        throw new SyntaxError();
+
+        consumeWhitespaceAndComments();
+        consumeString("from");
+        consumeWhitespaceAndComments();
+        const specifierString = consumeStringLiteral();
+
+        imports.push({
+            startPosition,
+            endPosition: position,
+            specifierString,
+            imports: importNames,
+        });
     }
 
-    function consumeRegexCharacterClass() {
-        position += 1;
-        while (position < code.length) {
-            const char = peek(1);
-            if (char === "]") {
-                return;
-            } else if (char === "\\") {
-                position += 1;
-            } else if (isNewline(char)) {
-                break;
-            }
-        }
-        throw new SyntaxError();
-    }
+    function consumeExport() {
 
-    function consumeString(endQuote: "\"" | "'"): string {
-        position += 1;
-        const char = peek(1);
-        const content: Array<string> = [];
-        while (position < code.length) {
-            if (char === endQuote) {
-                return content.join("");
-            } else if (char === "\\") {
-                position += 1;
-            } else if (isNewline(char)) {
-                break;
-            }
-        }
-        throw new SyntaxError();
     }
 
     function consumeLineComment() {
@@ -307,20 +358,6 @@ export default function parseImportsAndExports(code: string) {
         throw new SyntaxError();
     }
 
-    function consumeTemplateString() {
-        position += 1;
-        while (position < code.length) {
-            if (peek(2) === "${") {
-                position += 2;
-                templateStack.push(templateDepth);
-                openTokenDepth += 1;
-                templateDepth = openTokenDepth;
-            }
-
-            position += 1;
-        }
-    }
-
     function consumeWhitespaceAndComments() {
         while (position <= code.length) {
             const char = peek(1);
@@ -337,32 +374,5 @@ export default function parseImportsAndExports(code: string) {
         }
     }
 
-    function tryConsumeImport() {
-        const startPosition = position;
-
-        position += 6;
-
-        consumeWhitespaceAndComments();
-
-        const char = peek(1);
-
-        if (char === "(") {
-            openTokenPositionsStack.push(startPosition);
-            if (lastToken === ".") {
-                return;
-            }
-            unclosedDynamicImports.push({ startPosition, startContentPosition: position + 1 });
-        } else if (char === ".") {
-            position += 1;
-            consumeWhitespaceAndComments();
-            if (isStringAt(position, "meta") && !(lastToken === ".")) {
-                importMetas.push({
-                    startPosition,
-                    endPosition: position + 4,
-                });
-            }
-        } else if (char === "\"" || "\"" || "{" || "*") {
-
-        }
-    }
+    return { imports, exports, dynamicImports, importMetas };
 }
