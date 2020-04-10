@@ -13,6 +13,8 @@
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "useDefineForClassFields": true,
-    "importsNotUsedAsValues": "error"
-  }
+    "importsNotUsedAsValues": "error",
+    "types": ["node"]
+  },
+  "include": ["./*.ts"]
 }

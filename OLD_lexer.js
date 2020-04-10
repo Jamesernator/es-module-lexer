@@ -1,39 +1,5 @@
-
-type Import = {
-    // Note, this is a raw source string *including* the quotes
-    specifierString: string,
-    startPosition: number,
-    endPosition: number,
-    imports: { [importName: string]: string },
-};
-
-type Export = {
-    fromSpecifierString: null | string,
-    startPosition: number,
-    endPosition: number,
-    exports: { [exportedName: string]: string },
-};
-
-type DynamicImport = {
-    startPosition: number,
-    endPosition: number,
-    contentEndPosition: number,
-    contentStartPosition: number,
-};
-
-type ImportMeta = {
-    startPosition: number,
-    endPosition: number,
-};
-
-type UnclosedDynamicImport = {
-    startPosition: number,
-    startContentPosition: number,
-};
-
-
-function isPunctuator(char: string) {
-    const codePoint = char.codePointAt(0)!;
+function isPunctuator(char) {
+    const codePoint = char.codePointAt(0);
     return char === "!"
         || char === "%"
         || char === "&"
@@ -44,62 +10,37 @@ function isPunctuator(char: string) {
         || char === "^"
         || codePoint > 122 && codePoint < 127;
 }
-
-function isNewline(char: string) {
+function isNewline(char) {
     return char === "\r" || char === "\n";
 }
-
-function isNewlineOrWhitespace(char: string) {
-    const codePoint = char.codePointAt(0)!;
+function isNewlineOrWhitespace(char) {
+    const codePoint = char.codePointAt(0);
     return codePoint > 8 && codePoint < 14
         || codePoint === 32
         || codePoint === 160;
 }
-
-function isNewlineOrWhitespaceOrPunctuator(char: string) {
+function isNewlineOrWhitespaceOrPunctuator(char) {
     return isNewlineOrWhitespace(char) || isPunctuator(char);
 }
-
-function isNewlineOrWhitespaceOrPunctuatorNotDot(char: string) {
-    return (isNewlineOrWhitespace(char) || isPunctuator(char))
-        && char !== ".";
-}
-
-type Result = {
-    imports: Array<Import>,
-    exports: Array<Export>,
-    importMetas: Array<ImportMeta>,
-    dynamicImports: Array<DynamicImport>,
-};
-
-function tokenize() {
-
-}
-
-export default function parseImportsAndExports(code: string): Result {
-    const imports: Array<Import> = [];
-    const exports: Array<Export> = [];
-    const importMetas: Array<ImportMeta> = [];
-    const dynamicImports: Array<DynamicImport> = [];
-
+export default function parseImportsAndExports(code) {
+    const imports = [];
+    const exports = [];
+    const importMetas = [];
+    const dynamicImports = [];
     const tokens = new Uint16Array();
-
     let position = 0;
-    const lastToken: string | null = null;
-    const currentToken: string | null = null;
+    const lastToken = null;
+    const currentToken = null;
     let openTemplateCount = 0;
-
-    const peek = (count: number=1) => {
+    const peek = (count = 1) => {
         return code.slice(position, position + count);
     };
-
     function consumeChar() {
         const char = code[position];
         position += 1;
         return char;
     }
-
-    function consumeString(string: string): string {
+    function consumeString(string) {
         for (const char of string) {
             if (code[position] !== char) {
                 throw new SyntaxError();
@@ -108,7 +49,6 @@ export default function parseImportsAndExports(code: string): Result {
         }
         return string;
     }
-
     function consumeTemplateLiteralPart() {
         const first = consumeChar();
         while (position < code.length && peek(1) !== "`" && peek(2) !== "${") {
@@ -123,20 +63,18 @@ export default function parseImportsAndExports(code: string): Result {
         if (first === "`") {
             if (peek(1) === "`") {
                 consumeString("`");
-                return { type: "template" as const };
+                return { type: "template" };
             }
             consumeString("${");
-            return { type: "templateStart" as const };
+            return { type: "templateStart" };
         }
-
         if (peek(1) === "`") {
             consumeString("`");
-            return { type: "templateEnd" as const };
+            return { type: "templateEnd" };
         }
         consumeString("${");
-        return { type: "templateContinue" as const };
+        return { type: "templateContinue" };
     }
-
     function consumePunctuator() {
         const char = consumeChar();
         if (!isPunctuator(char)) {
@@ -144,16 +82,14 @@ export default function parseImportsAndExports(code: string): Result {
         }
         return char;
     }
-
     function consumeSequence() {
         const startPosition = position;
         while (position < code.length
-        && !isNewlineOrWhitespaceOrPunctuator(peek())) {
+            && !isNewlineOrWhitespaceOrPunctuator(peek())) {
             position += 1;
         }
         return code.slice(startPosition, position);
     }
-
     function consumeToken() {
         if (peek() === "`") {
             const token = consumeTemplateLiteralPart();
@@ -161,25 +97,28 @@ export default function parseImportsAndExports(code: string): Result {
                 openTemplateCount += 1;
             }
             return token;
-        } else if (peek() === "}" && openTemplateCount > 0) {
+        }
+        else if (peek() === "}" && openTemplateCount > 0) {
             const token = consumeTemplateLiteralPart();
             if (token.type === "templateEnd") {
                 openTemplateCount -= 1;
             }
             return token;
-        } else if (peek() === `'` || peek() === `"`) {
+        }
+        else if (peek() === `'` || peek() === `"`) {
             return {
-                type: "stringLiteral" as const,
+                type: "stringLiteral",
                 source: consumeStringLiteral(),
             };
-        } else if (isPunctuator(peek())) {
+        }
+        else if (isPunctuator(peek())) {
             return { type: "punctuator", source: consumePunctuator() };
-        } else if (peek() === "/") {
+        }
+        else if (peek() === "/") {
             throw new Error("TODO");
         }
         return { type: "other", source: consumeSequence() };
     }
-
     function peekToken() {
         const startPosition = position;
         consumeToken();
@@ -187,23 +126,25 @@ export default function parseImportsAndExports(code: string): Result {
         position = startPosition;
         return code.slice(startPosition, endPosition);
     }
-
-    function consumeContent(terminator: string | null=null) {
+    function consumeContent(terminator = null) {
         while (position < code.length) {
             if (peekToken() === terminator) {
                 return;
-            } else if (peekToken() === "import") {
+            }
+            else if (peekToken() === "import") {
                 consumeImport();
-            } else if (peekToken() === "export") {
+            }
+            else if (peekToken() === "export") {
                 consumeExport();
-            } else if (peekToken() === "(") {
+            }
+            else if (peekToken() === "(") {
                 consumeContent(")");
-            } else {
+            }
+            else {
                 consumeToken();
             }
         }
     }
-
     function consumeStringLiteral() {
         const startPosition = position;
         const startQuote = code[position];
@@ -224,13 +165,10 @@ export default function parseImportsAndExports(code: string): Result {
         consumeString(startQuote);
         return code.slice(startPosition, position);
     }
-
     function consumeImport() {
         const startPosition = 0;
-
         consumeString("import");
         consumeWhitespaceAndComments();
-
         function consumeNamespaceImport() {
             consumeString("*");
             consumeWhitespaceAndComments();
@@ -238,9 +176,8 @@ export default function parseImportsAndExports(code: string): Result {
             consumeWhitespaceAndComments();
             return consumeSequence();
         }
-
         function consumeNamedImports() {
-            const importedNames: Record<string, string> = Object.create(null);
+            const importedNames = Object.create(null);
             while (peekToken() !== "}") {
                 consumeWhitespaceAndComments();
                 const importedName = consumeSequence();
@@ -250,10 +187,10 @@ export default function parseImportsAndExports(code: string): Result {
                     consumeWhitespaceAndComments();
                     const importedAsName = consumeSequence();
                     importedNames[importedName] = importedAsName;
-                } else {
+                }
+                else {
                     importedNames[importedName] = importedName;
                 }
-
                 if (peekToken() === ",") {
                     consumeString(",");
                 }
@@ -261,20 +198,16 @@ export default function parseImportsAndExports(code: string): Result {
             consumeString("}");
             return importedNames;
         }
-
         // Dynamic import
         if (peekToken() === "(") {
             consumeString("(");
             consumeWhitespaceAndComments();
-
             const contentStartPosition = position;
             consumeContent(")");
             const contentEndPosition = position;
-
             consumeWhitespaceAndComments();
             consumeString(")");
             consumeWhitespaceAndComments();
-
             if (peekToken() !== "{") {
                 dynamicImports.push({
                     startPosition,
@@ -284,8 +217,9 @@ export default function parseImportsAndExports(code: string): Result {
                 });
             }
             return;
-        // Import.meta
-        } else if (peekToken() === ".") {
+            // Import.meta
+        }
+        else if (peekToken() === ".") {
             consumeString(".");
             consumeWhitespaceAndComments();
             const prop = consumeToken();
@@ -297,34 +231,33 @@ export default function parseImportsAndExports(code: string): Result {
                 endPosition: position,
             });
         }
-
-        const importNames: Record<string, string> = Object.create(null);
-
+        const importNames = Object.create(null);
         if (peekToken() === "{") {
             Object.assign(importNames, consumeNamedImports());
-        } else if (peekToken() === "*") {
+        }
+        else if (peekToken() === "*") {
             importNames["*"] = consumeNamespaceImport();
-        } else if (peekToken() !== "stringLiteral") {
+        }
+        else if (peekToken() !== "stringLiteral") {
             const defaultName = consumeSequence();
             importNames.default = defaultName;
-
             if (peekToken() === ",") {
                 consumeWhitespaceAndComments();
                 if (peekToken() === "*") {
                     importNames["*"] = consumeNamespaceImport();
-                } else if (peekToken() === "{") {
+                }
+                else if (peekToken() === "{") {
                     Object.assign(importNames, consumeNamedImports());
-                } else {
+                }
+                else {
                     throw new SyntaxError();
                 }
             }
         }
-
         consumeWhitespaceAndComments();
         consumeString("from");
         consumeWhitespaceAndComments();
         const specifierString = consumeStringLiteral();
-
         imports.push({
             startPosition,
             endPosition: position,
@@ -332,11 +265,8 @@ export default function parseImportsAndExports(code: string): Result {
             imports: importNames,
         });
     }
-
     function consumeExport() {
-
     }
-
     function consumeLineComment() {
         position += 1;
         while (position < code.length) {
@@ -345,7 +275,6 @@ export default function parseImportsAndExports(code: string): Result {
             }
         }
     }
-
     function consumeBlockComment() {
         position += 2;
         while (position < code.length) {
@@ -357,22 +286,21 @@ export default function parseImportsAndExports(code: string): Result {
         }
         throw new SyntaxError();
     }
-
     function consumeWhitespaceAndComments() {
         while (position <= code.length) {
             const char = peek(1);
-
             if (peek(2) === "//") {
                 consumeLineComment();
-            } else if (peek(2) === "/*") {
+            }
+            else if (peek(2) === "/*") {
                 consumeBlockComment();
-            } else if (!isNewlineOrWhitespace(char)) {
+            }
+            else if (!isNewlineOrWhitespace(char)) {
                 return;
             }
-
             position += 1;
         }
     }
-
     return { imports, exports, dynamicImports, importMetas };
 }
+//# sourceMappingURL=OLD_lexer.js.map

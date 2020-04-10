@@ -1,12 +1,13 @@
 {
   "name": "@jamesernator/es-module-lexer",
+  "type": "module",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "mocha ./test/*",
     "asbuild:untouched": "asc assembly/index.ts -b build/untouched.wasm -t build/untouched.wat --validate --sourceMap --debug",
-    "asbuild:optimized": "asc assembly/index.ts -b build/optimized.wasm -t build/optimized.wat --validate --sourceMap --optimize",
+    "asbuild:optimized": "asc assembly/index.ts -b build/optimized.wasm -t build/optimized.wat --validate --sourceMap -O3z --runtime stub",
     "asbuild": "npm run asbuild:untouched && npm run asbuild:optimized"
   },
   "repository": {
@@ -29,6 +30,7 @@
     "typescript": "^3.8.3"
   },
   "dependencies": {
-    "@assemblyscript/loader": "^0.9.4"
+    "@assemblyscript/loader": "^0.9.4",
+    "@types/node": "^13.11.1"
   }
 }
