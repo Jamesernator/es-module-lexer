@@ -1,3 +1,4 @@
+/* eslint-disable prefer-template */
 
 declare function addImport(string: string): void;
 declare function syntaxError(string: string): void;
@@ -18,6 +19,18 @@ class ParserState {
         this.tokenCount = 0;
         this.position = 0;
     }
+}
+
+function isParenKeyword(string: string): boolean {
+    return string == "if"
+        || string == "while"
+        || string == "for";
+}
+
+function isExpressionTerminator(string: string): boolean {
+    return string == ";"
+        || string == ")"
+        || string == "finally";
 }
 
 function isPunctuator(char: string): boolean {
@@ -90,7 +103,7 @@ enum TokenType {
 
 function consumeString(state: ParserState, string: string): void {
     if (state.code.substr(state.position, string.length) != string) {
-        syntaxError(`Failed to consume string ${ string }`);
+        syntaxError("Failed to consume string" + string);
     }
     state.position += string.length;
 }
@@ -113,6 +126,7 @@ function consumeBlockComment(state: ParserState): void {
     while (state.position < state.code.length) {
         if (state.code.substr(state.position, 2) == "*/") {
             state.position += 2;
+            return;
         }
         state.position += 1;
     }
@@ -205,9 +219,18 @@ function isQuote(char: string): boolean {
     return char == `'` || char == `"`;
 }
 
+function lastToken(state: ParserState): string {
+    const lastTokenOffset = 3 * (state.tokenCount - 1);
+    return state.code.slice(
+        state.tokens[lastTokenOffset + 1],
+        state.tokens[lastTokenOffset + 2],
+    );
+}
+
 function consumeStringLiteral(state: ParserState): void {
     const startPosition = state.position;
     const quote = state.code.substr(state.position, 1);
+    state.position += 1;
 
     while (state.position < state.code.length
     && state.code.substr(state.position, 1) != quote) {
@@ -222,15 +245,26 @@ function consumeStringLiteral(state: ParserState): void {
 }
 
 function consumeParens(state: ParserState): void {
+    const token = lastToken(state);
     consumePunctuator(state);
     tokenize(state, EndWhen.CLOSING_PARENTHESIS);
     consumePunctuator(state);
+    consumeWhitespaceAndComments(state);
+    if (state.code.substr(state.position, 1) == "/" && isParenKeyword(token)) {
+        consumeRegularExpression(state);
+    }
 }
 
 function consumeBraces(state: ParserState): void {
+    const token = lastToken(state);
     consumePunctuator(state);
     tokenize(state, EndWhen.CLOSING_BRACE);
     consumePunctuator(state);
+
+    if (state.code.substr(state.position, 1) == "/"
+    && isExpressionTerminator(token)) {
+        consumeRegularExpression(state);
+    }
 }
 
 function consumePunctuator(state: ParserState): void {
@@ -246,28 +280,60 @@ function consumeSequence(state: ParserState): void {
     addToken(state, TokenType.SEQUENCE, startPosition, state.position);
 }
 
-function toName(endWhen: EndWhen): string {
-    switch (endWhen) {
-    case EndWhen.CLOSING_BRACE:
-        return "CLOSING_BRACE";
-    case EndWhen.CLOSING_PARENTHESIS:
-        return "CLOSING_PARENTHESIS";
-    case EndWhen.CLOSING_TEMPLATE:
-        return "CLOSING_TEMPLATE";
-    default:
-        return "EOF";
+function consumeCharacterClass(state: ParserState): void {
+    state.position += 1;
+
+    while (state.position < state.code.length
+    && state.code.substr(state.position, 1) != "]") {
+        if (state.code.substr(state.position, 1) == "\\") {
+            state.position += 1;
+        }
+
+        state.position += 1;
+    }
+
+    if (state.position == state.code.length) {
+        syntaxError("Unterminated character class");
     }
 }
 
-function lastToken(state: ParserState): string {
-    const lastTokenOffset = 3 * (state.tokenCount - 1);
-    return state.code.slice(
-        state.tokens[lastTokenOffset + 1],
-        state.tokens[lastTokenOffset + 2],
-    );
+function consumeRegularExpression(state: ParserState): void {
+    const startPosition = state.position;
+    state.position += 1;
+
+    while (state.position < state.code.length
+    && state.code.substr(state.position, 1) != "/") {
+        if (state.code.substr(state.position, 1) == "[") {
+            consumeCharacterClass(state);
+            continue;
+        }
+        if (state.code.substr(state.position, 1) == "\\") {
+            state.position += 1;
+        }
+
+        state.position += 1;
+    }
+
+    if (state.position == state.code.length) {
+        syntaxError("Unterminated Regular Expression");
+    }
+    state.position += 1;
+
+    addToken(state, TokenType.REGULAR_EXPRESSION, startPosition, state.position);
 }
 
-
+function toName(endWhen: EndWhen): string {
+    switch (endWhen) {
+        case EndWhen.CLOSING_BRACE:
+            return "CLOSING_BRACE";
+        case EndWhen.CLOSING_PARENTHESIS:
+            return "CLOSING_PARENTHESIS";
+        case EndWhen.CLOSING_TEMPLATE:
+            return "CLOSING_TEMPLATE";
+        default:
+            return "EOF";
+    }
+}
 
 function tokenize(state: ParserState, endWhen: EndWhen=EndWhen.EOF): void {
     consumeWhitespaceAndComments(state);
@@ -287,7 +353,7 @@ function tokenize(state: ParserState, endWhen: EndWhen=EndWhen.EOF): void {
             if (state.tokenCount == 0
             || isExpressionPunctuator(lastToken(state))
             || isExpressionKeyword(lastToken(state))) {
-                syntaxError("Not ready yet");
+                consumeRegularExpression(state);
             } else {
                 consumePunctuator(state);
             }
@@ -309,8 +375,7 @@ function tokenize(state: ParserState, endWhen: EndWhen=EndWhen.EOF): void {
     }
 
     if (endWhen != EndWhen.EOF) {
-        // eslint-disable-next-line
-        syntaxError('Reached end without closure of ' + toName(endWhen));
+        syntaxError("Reached end without closure of " + toName(endWhen));
     }
 }
 
