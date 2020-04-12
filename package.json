@@ -31,6 +31,7 @@
   },
   "dependencies": {
     "@assemblyscript/loader": "^0.9.4",
-    "@types/node": "^13.11.1"
+    "@types/node": "^13.11.1",
+    "es-module-lexer": "^0.3.17"
   }
 }

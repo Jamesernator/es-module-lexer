@@ -1,6 +1,7 @@
 import fs from "fs";
 import loader from "@assemblyscript/loader";
 
+console.time("Instantiate");
 const instance = loader.instantiateSync(
     fs.readFileSync("./build/optimized.wasm"),
     {
@@ -17,6 +18,8 @@ const instance = loader.instantiateSync(
         },
     },
 );
+console.timeEnd("Instantiate");
+
 
 /*
 const code = `
@@ -26,7 +29,9 @@ const code = `
 `;
 //*/
 
+console.time("Allocate Code");
 const code = fs.readFileSync("./test/samples/d3.js", "utf8");
+console.timeEnd("Allocate Code");
 
 const str = instance.__retain(instance.__allocString(code));
 console.time("Tokenize");
@@ -41,5 +46,3 @@ for (let i = 0; i < code.length; i += 1) {
     }
     tokenList.push(code.slice(start, end));
 }
-
-console.log(JSON.stringify(tokenList, null, 4));
