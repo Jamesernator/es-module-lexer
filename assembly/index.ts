@@ -180,7 +180,7 @@ function consumeTemplateLiteralPart(state: ParserState): TokenType {
     }
 
     state.position += 2;
-    return TokenType.TEMPLATE_END;
+    return TokenType.TEMPLATE_MIDDLE;
 }
 
 enum EndWhen {
