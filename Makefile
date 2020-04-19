@@ -18,7 +18,9 @@ lib/lexer.wasm: ./lexer.c
 		./lexer.c
 
 optimize: lib/lexer.wasm
-	wasm-opt -Oz lib/lexer.wasm -o lib/lexer.wasm
+	./binaryen/bin/wasm-opt -Oz lib/lexer.wasm -o lib/lexer.wasm
+
+all: lib/lexer.wasm lib/lexer.wat optimize
 
 clean:
 	rm lib/*

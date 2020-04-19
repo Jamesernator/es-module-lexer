@@ -9,16 +9,9 @@ typedef struct {
 } String;
 
 extern void syntaxError(int32_t start, int32_t length);
-extern void emitToken(int32_t start, int32_t length);
-extern void _log(int32_t start, int32_t length);
-extern void consoleLogInt(int32_t num);
 
 void raiseSyntaxError(String string) {
     syntaxError((int32_t)string.start, string.length);
-}
-
-void consoleLog(String string) {
-    _log((int32_t)string.start, string.length);
 }
 
 typedef struct {
@@ -307,13 +300,22 @@ void consumePunctuator(ParserState* state) {
     state->position += 1;
 }
 
+void consumeRestOfImport(ParserState* state) {
+
+}
+
 void consumeSequence(ParserState* state) {
+    String priorToken = state->lastToken;
     int32_t startPosition = state->position;
     while (state->position < state->code.length
     && !isNewlineOrWhitespaceOrPunctuator(peekChar(state))) {
         state->position += 1;
     }
     addToken(state, SEQUENCE, startPosition, state->position);
+    if (stringEqual(state->lastToken, s(u"import"))) {
+        if (stringEqual(priorToken, s(u"."))) return;
+        consumeRestOfImport(state);
+    }
 }
 
 void consumeCharacterClass(ParserState* state) {
