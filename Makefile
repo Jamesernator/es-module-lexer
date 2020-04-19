@@ -1,5 +1,5 @@
 lib/lexer.wat: lib/lexer.wasm
-	wasm2wat lib/lexer.wasm -o lib/lexer.wat
+	./wabt/bin/wasm2wat lib/lexer.wasm -o lib/lexer.wat
 
 lib/lexer.wasm: ./lexer.c
 	@mkdir -p lib

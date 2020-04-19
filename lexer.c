@@ -8,6 +8,13 @@ typedef struct {
     int32_t length;
 } String;
 
+extern void _consoleLog(int32_t start, int32_t length);
+extern void _consoleLogInt(int32_t i);
+
+void consoleLog(String message) {
+    _consoleLog(message.start, message.length);
+}
+
 extern void syntaxError(int32_t start, int32_t length);
 
 void raiseSyntaxError(String string) {
@@ -155,6 +162,7 @@ typedef enum {
 void tokenize(ParserState* state, EndWhen endWhen);
 void consumePunctuator(ParserState* state);
 void consumeRegularExpression(ParserState* state);
+String consumeSequence(ParserState* state);
 
 void consumeLineComment(ParserState* state) {
     state->position += 1;
@@ -255,7 +263,7 @@ void tokenizeTemplateLiteral(ParserState* state) {
     } while (type != TEMPLATE_END);
 }
 
-void consumeStringLiteral(ParserState* state, char16_t quote) {
+String consumeStringLiteral(ParserState* state, char16_t quote) {
     int32_t startPosition = state->position;
     state->position += 1;
     
@@ -271,6 +279,8 @@ void consumeStringLiteral(ParserState* state, char16_t quote) {
         raiseSyntaxError(s(u"Unterminated string literal"));
     }
     state->position += 1;
+    addToken(state, STRING_LITERAL, startPosition, state->position);
+    return state->lastToken;
 }
 
 void consumeParens(ParserState* state) {
@@ -300,22 +310,174 @@ void consumePunctuator(ParserState* state) {
     state->position += 1;
 }
 
-void consumeRestOfImport(ParserState* state) {
+extern void openImport(int32_t startPosition);
+extern void emitImportName(
+    int32_t importNameStartPosition,
+    int32_t importNameLength,
+    int32_t asNameStartPosition,
+    int32_t asNameLength
+);
+extern void finalizeImport(
+    int32_t endPosition,
+    int32_t specifierStart,
+    int32_t specifierLength
+);
+extern void emitDynamicImport(
+    int32_t startPosition,
+    int32_t endPosition,
+    int32_t contentStartPosition,
+    int32_t contentEndPosition
+);
+extern void emitImportMeta(
+    int32_t startPosition,
+    int32_t endPosition
+);
 
+void _finalizeImport(int32_t endPosition, String specifier) {
+    finalizeImport(endPosition, (int32_t)specifier.start, specifier.length);
 }
 
-void consumeSequence(ParserState* state) {
-    String priorToken = state->lastToken;
+void _emitImportName(String importName, String asName) {
+    emitImportName(
+        (int32_t)importName.start, importName.length,
+        (int32_t)asName.start, asName.length
+    );
+}
+
+String consumeNamespaceImport(ParserState* state) {
+    state->position += 1;
+    consumePunctuator(state);
+    consumeWhitespaceAndComments(state);
+    consumeSequence(state);
+    consumeWhitespaceAndComments(state);
+    return consumeSequence(state);
+}
+
+
+void consumeNamedImports(ParserState* state) {
+    state->position += 1;
+
+    while (state->position < state->code.length
+    && peekChar(state) != '}') {
+        consumeWhitespaceAndComments(state);
+        String importedName = consumeSequence(state);
+        consumeWhitespaceAndComments(state);
+        if (!isPunctuator(peekChar(state))) {
+            consumeSequence(state);
+            consumeWhitespaceAndComments(state);
+            String importedAsName = consumeSequence(state);
+            _emitImportName(importedName, importedAsName);
+        } else {
+            _emitImportName(importedName, importedName);
+        }
+
+        consumeWhitespaceAndComments(state);
+        if (peekChar(state) == ',') {
+            consumePunctuator(state);
+        }
+    }
+    if (state->position >= state->code.length) {
+        raiseSyntaxError(s(u"Unclosed named import"));
+    }
+    consumePunctuator(state);
+}
+
+void consumeImport(ParserState* state) {
+    int32_t startPosition = state->position;
+
+    consumeSequence(state);
+    consumeWhitespaceAndComments(state);
+
+    // dynamic import
+    if (peekChar(state) == '(') {
+        consumePunctuator(state);
+        int32_t contentStartPosition = state->position;
+        consumeWhitespaceAndComments(state);
+        tokenize(state, CLOSING_PARENTHESIS);
+        consumeWhitespaceAndComments(state);
+        int32_t contentEndPosition = state->position;
+        consumePunctuator(state);
+        int32_t endPosition = state->position;
+        consumeWhitespaceAndComments(state);
+        
+        if (peekChar(state) != '{') {
+            emitDynamicImport(
+                startPosition,
+                endPosition,
+                contentStartPosition,
+                contentEndPosition
+            );
+        }
+        return;
+    // import.meta
+    } else if (peekChar(state) == '.') {
+        consumePunctuator(state);
+        consumeWhitespaceAndComments(state);
+        String meta = consumeSequence(state);
+        if (!stringEqual(meta, s(u"meta"))) {
+            raiseSyntaxError(s(u"import.meta is only import metaproperty supported"));
+        }
+        emitImportMeta(startPosition, state->position);
+        return;
+    // bare import
+    } else if (isQuote(peekChar(state))) {
+        openImport(startPosition);
+        String specifier = consumeStringLiteral(state, peekChar(state));
+        _finalizeImport(state->position, specifier);
+    }
+
+    openImport(startPosition);
+    if (peekChar(state) == '{') {
+        consumeNamedImports(state);
+    } else if (peekChar(state) == '*') {
+        _emitImportName(s(u"*"), consumeNamespaceImport(state));
+    } else {
+        String defaultName = consumeSequence(state);
+        _emitImportName(s(u"default"), defaultName);
+        consumeWhitespaceAndComments(state);
+        if (peekChar(state) == ',') {
+            consumePunctuator(state);
+            consumeWhitespaceAndComments(state);
+            if (peekChar(state) == '*') {
+                _emitImportName(s(u"*"), consumeNamespaceImport(state));
+            } else if (peekChar(state) == '{') {
+                consumeNamedImports(state);
+            } else {
+                raiseSyntaxError(s(u"Unexpected token after default import"));
+            }
+        }
+    }
+
+    consumeWhitespaceAndComments(state);
+    consumeSequence(state);
+    consumeWhitespaceAndComments(state);
+    String specifier = consumeStringLiteral(state, peekChar(state));
+    _finalizeImport(state->position, specifier);
+}
+
+String peekSequence(ParserState* state) {
+    int32_t startPosition = state->position;
+    while (state->position < state->code.length
+    && !isNewlineOrWhitespaceOrPunctuator(peekChar(state))) {
+        state->position += 1;
+    }
+    String seq = (String){
+        state->code.start + startPosition,
+        state->position - startPosition
+    };
+    state->position = startPosition;
+    return seq;
+}
+
+String consumeSequence(ParserState* state) {
     int32_t startPosition = state->position;
     while (state->position < state->code.length
     && !isNewlineOrWhitespaceOrPunctuator(peekChar(state))) {
         state->position += 1;
     }
     addToken(state, SEQUENCE, startPosition, state->position);
-    if (stringEqual(state->lastToken, s(u"import"))) {
-        if (stringEqual(priorToken, s(u"."))) return;
-        consumeRestOfImport(state);
-    }
+    String sequence = state->lastToken;
+    return sequence;
 }
 
 void consumeCharacterClass(ParserState* state) {
@@ -386,6 +548,12 @@ void tokenize(ParserState* state, EndWhen endWhen) {
             consumeBraces(state);
         } else if (isPunctuator(peekChar(state))) {
             consumePunctuator(state);
+        } else if (stringEqual(peekSequence(state), s(u"import"))
+        && !stringEqual(state->lastToken, s(u"."))) {
+            consumeImport(state);
+        } else if (stringEqual(peekSequence(state), s(u"export"))) {
+            // TODO: CHange
+            consumeSequence(state);
         } else {
             consumeSequence(state);
         }
@@ -397,6 +565,8 @@ void tokenize(ParserState* state, EndWhen endWhen) {
         raiseSyntaxError(s(u"Reached end without closure"));
     }
 }
+
+
 
 void parse(char16_t* start, int32_t length) {
     String code = (String){ start, length };

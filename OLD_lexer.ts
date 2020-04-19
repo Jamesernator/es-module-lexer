@@ -288,6 +288,7 @@ export default function parseImportsAndExports(code: string): Result {
                 startPosition,
                 endPosition: position,
             });
+            return;
         }
 
         const importNames: Record<string, string> = Object.create(null);
