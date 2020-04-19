@@ -1,3 +1,4 @@
-/node_modules
+/node_modules/
 /wasi-sdk-10.0/
-/binaryen
+/binaryen/
+/wabt/
