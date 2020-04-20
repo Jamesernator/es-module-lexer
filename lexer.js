@@ -76,21 +76,29 @@ export default function parse(code) {
         },
     });
 
+    console.time('loadStringToMemory');
     const initialPage = instance.exports.memory.grow(Math.ceil(code.length / PAGE_SIZE * Uint16Array.BYTES_PER_ELEMENT));
-    const characterArray = new Uint16Array(code.length);
+
+    const characterArray = new Uint16Array(
+        instance.exports.memory.buffer,
+        initialPage*PAGE_SIZE,
+        code.length,
+    );
+
     for (let i = 0; i < code.length; i++) {
         characterArray[i] = code[i].charCodeAt(0);
     }
+    console.timeEnd('loadStringToMemory');
 
-    
-    const memory = new Uint16Array(instance.exports.memory.buffer);
-    memory.set(characterArray, initialPage*PAGE_SIZE / Uint16Array.BYTES_PER_ELEMENT);
-
+    console.time('wasm');
     instance.exports.parse(initialPage*PAGE_SIZE, code.length);
+    console.timeEnd('wasm');
 
     return { imports, importMetas, dynamicImports, exports };
 }
 
 const code = fs.readFileSync('./test/samples/rollup.js', 'utf8');
 
+console.time('parse');
 console.log(parse(code))
+console.timeEnd('parse');
