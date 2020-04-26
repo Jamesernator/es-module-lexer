@@ -6,10 +6,7 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha ./test/*",
-    "build": "make lib/lexer.wasm",
-    "asbuild:untouched": "asc assembly/index.ts -b build/untouched.wasm -t build/untouched.wat --validate --sourceMap --debug",
-    "asbuild:optimized": "asc assembly/index.ts -b build/optimized.wasm -t build/optimized.wat --validate --sourceMap -O3z --runtime stub",
-    "asbuild": "npm run asbuild:untouched && npm run asbuild:optimized"
+    "build": "make all"
   },
   "repository": {
     "type": "git",
@@ -25,7 +22,6 @@
     "@jsxt/eslint-config-typescript": "^3.4.6",
     "@typescript-eslint/eslint-plugin": "^2.27.0",
     "@typescript-eslint/parser": "^2.27.0",
-    "assemblyscript": "^0.9.4",
     "es-module-lexer": "^0.3.18",
     "eslint": "^6.8.0",
     "eslint-plugin-import": "^2.20.2",
