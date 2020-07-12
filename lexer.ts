@@ -305,11 +305,52 @@ export default class Parser {
     };
 
     #consumeParens = (): void => {
-
+        const lastToken = this.#lastToken;
+        this.#consumePunctuator();
+        this.#tokenize(EndWhen.closingParenthesis);
+        this.#consumePunctuator();
+        this.#consumeWhitespaceAndComments();
+        if (this.#peek() === "/" && isExpressionTerminator(lastToken)) {
+            this.#consumeRegularExpression();
+        }
     };
 
     #consumeBraces = (): void => {
+        const lastToken = this.#lastToken;
+        this.#consumePunctuator();
+        this.#tokenize(EndWhen.closingBrace);
+        this.#consumePunctuator();
+        this.#consumeWhitespaceAndComments();
+        if (this.#peek() === "/" && isExpressionTerminator(lastToken)) {
+            this.#consumeRegularExpression();
+        }
+    };
 
+    #consumeNamespaceImport = (): void => {
+        this.#position += 1;
+        this.#consumePunctuator();
+        this.#consumeWhitespaceAndComments();
+        this.#consumeSequence();
+        this.#consumeWhitespaceAndComments();
+        return this.#consumeSequence();
+    };
+
+    #consumeNamedImports = function* (this: Parser): Generator<[string, string]> {
+        this.#position += 1;
+
+        while (!this.#atEnd() && this.#peek() !== "}") {
+            this.#consumeWhitespaceAndComments();
+            const importedName = this.#consumeSequence();
+            this.#consumeWhitespaceAndComments();
+            if (isPunctuator(this.#peek())) {
+                yield [importedName, importedName];
+            } else {
+                this.#consumeSequence();
+                this.#consumeWhitespaceAndComments();
+                const importedAs = this.#consumeSequence();
+                yield [importedName, importedAs];
+            }
+        }
     };
 
     #consumeImport = (): void => {
@@ -320,7 +361,7 @@ export default class Parser {
 
     };
 
-    #consumeSequence = (): void => {
+    #consumeSequence = (): string => {
 
     };
 
