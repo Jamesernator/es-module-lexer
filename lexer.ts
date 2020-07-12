@@ -44,6 +44,21 @@ function isPunctuator(char: string): boolean {
         || codePoint > 122 && codePoint < 127;
 }
 
+function isNewline(char: string): boolean {
+    return char === "\r" || char === "\n";
+}
+
+function isNewlineOrWhitespace(char: string): boolean {
+    const codePoint = char.codePointAt(0)!;
+    return codePoint > 8 && codePoint < 14
+        || codePoint === 32
+        || codePoint === 160;
+}
+
+function isNewlineOrWhitespaceOrPunctuator(char: string): boolean {
+    return isNewlineOrWhitespace(char) || isPunctuator(char);
+}
+
 function isParenKeyword(token: string): boolean {
     return token === "if"
         || token === "for"
@@ -92,6 +107,13 @@ enum EndWhen {
     closingParenthesis,
 }
 
+enum TemplateTokenType {
+    template,
+    templateHead,
+    templateMiddle,
+    templateEnd,
+}
+
 export default class Parser {
     #code: string;
     #lastToken: string = "";
@@ -126,22 +148,160 @@ export default class Parser {
         }
     };
 
+    #peekSequence = (): string => {
+        const startPosition = this.#position;
+        while (!this.#atEnd()
+        && !isNewlineOrWhitespaceOrPunctuator(this.#peek())) {
+            this.#position += 1;
+        }
+        const seq = this.#code.slice(startPosition, this.#position);
+        this.#position = startPosition;
+        return seq;
+    };
+
+    #consumeCharacterClass = (): void => {
+        this.#position += 1;
+        while (!this.#atEnd() && this.#peek() !== "[") {
+            if (this.#peek() === "\\") {
+                this.#position += 1;
+            }
+            this.#position += 1;
+        }
+        if (this.#atEnd()) {
+            throw new SyntaxError("Unterminated character class");
+        }
+        this.#position += 1;
+    };
+
     #consumeRegularExpression = (): void => {
+        const startPosition = this.#position;
+        this.#position += 1;
+        while (!this.#atEnd() && this.#peek() !== "/") {
+            if (this.#peek() === "[") {
+                this.#consumeCharacterClass();
+                continue;
+            }
+            if (this.#peek() === "\\") {
+                this.#position += 1;
+            }
+
+            this.#position += 1;
+        }
+        if (this.#atEnd()) {
+            throw new SyntaxError("Unterminated regular expression literal");
+        }
+        this.#position += 1;
+        this.#lastToken = this.#code.slice(startPosition, this.#position);
+    };
+
+    #consumeBlockComment = (): void => {
+        this.#position += 2;
+        while (!this.#atEnd()) {
+            if (this.#peek(2) === "*/") {
+                this.#position += 2;
+                return;
+            }
+            this.#position += 1;
+        }
+        throw new SyntaxError("Unterminated block comment");
+    };
+
+    #consumeLineComment = (): void => {
+        this.#position += 2;
+        while (!this.#atEnd()) {
+            if (isNewlineOrWhitespace(this.#peek())) {
+                this.#position += 1;
+                return;
+            }
+            this.#position += 1;
+        }
     };
 
     #consumeWhitespaceAndComments = (): void => {
+        while (!this.#atEnd()) {
+            if (this.#peek(2) === "//") {
+                this.#consumeLineComment();
+            } else if (this.#peek(2) === "/*") {
+                this.#consumeBlockComment();
+            } else if (isNewlineOrWhitespace(this.#peek())) {
+                this.#position += 1;
+            } else {
+                return;
+            }
+        }
     };
 
     #consumePunctuator = (): void => {
+        this.#lastToken = this.#peek();
+        this.#position += 1;
+    };
 
+    #consumeTemplateLiteralPart = (): TemplateTokenType => {
+        const firstChar = this.#peek();
+        this.#position += 1;
+
+        while (!this.#atEnd() && this.#peek() !== "`" && this.#peek(2) !== "${") {
+            if (this.#peek() === "\\") {
+                this.#position += 1;
+            }
+            this.#position += 1;
+        }
+
+        if (this.#atEnd()) {
+            throw new SyntaxError("Unterminated template literal");
+        }
+
+        if (firstChar === "`") {
+            if (this.#peek() === "`") {
+                this.#position += 1;
+                return TemplateTokenType.template;
+            }
+            this.#position += 2;
+            return TemplateTokenType.templateHead;
+        }
+
+        if (this.#peek() === "`") {
+            this.#position += 1;
+            return TemplateTokenType.templateEnd;
+        }
+
+        this.#position += 2;
+        return TemplateTokenType.templateMiddle;
     };
 
     #consumeTemplateLiteral = (): void => {
+        const startPosition = this.#position;
+        let type = this.#consumeTemplateLiteralPart();
+        this.#lastToken = this.#code.slice(startPosition, this.#position);
 
+        if (type === TemplateTokenType.template) {
+            return;
+        }
+
+        do {
+            const startPosition = this.#position;
+            type = this.#consumeTemplateLiteralPart();
+            this.#lastToken = this.#code.slice(startPosition, this.#position);
+        } while (type !== TemplateTokenType.templateEnd);
     };
 
-    #consumeStringLiteral = (): void => {
+    #consumeStringLiteral = (): string => {
+        const startPosition = this.#position;
+        const quote = this.#peek();
+        this.#position += 1;
 
+        while (!this.#atEnd() && this.#peek() !== quote) {
+            if (this.#peek() === "\\") {
+                this.#position += 1;
+            }
+            this.#position += 1;
+        }
+        if (this.#atEnd()) {
+            throw new SyntaxError("Unterminated string literal");
+        }
+        this.#position += 1;
+        this.#lastToken = this.#code.slice(startPosition, this.#position);
+        return this.#lastToken;
     };
 
     #consumeParens = (): void => {
@@ -149,6 +309,18 @@ export default class Parser {
     };
 
     #consumeBraces = (): void => {
+
+    };
+
+    #consumeImport = (): void => {
+
+    };
+
+    #consumeExport = (): void => {
+
+    };
+
+    #consumeSequence = (): void => {
 
     };
 
@@ -174,7 +346,20 @@ export default class Parser {
                 this.#consumeBraces();
             } else if (isPunctuator(this.#peek())) {
                 this.#consumePunctuator();
+            } else if (this.#peekSequence() === "import"
+            && this.#lastToken !== ".") {
+                this.#consumeImport();
+            } else if (this.#peekSequence() === "export") {
+                this.#consumeExport();
+            } else {
+                this.#consumeSequence();
             }
+
+            this.#consumeWhitespaceAndComments();
+        }
+
+        if (this.#atEnd() && endWhen !== EndWhen.eof) {
+            throw new SyntaxError("Unterminated production");
         }
     };
 

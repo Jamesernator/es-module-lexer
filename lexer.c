@@ -245,7 +245,7 @@ void addToken(ParserState* state, TokenType type, int32_t start, int32_t end) {
     state->lastToken = (String){ state->code.start + start, end - start };
 }
 
-void tokenizeTemplateLiteral(ParserState* state) {
+void consumeTemplateLiteral(ParserState* state) {
     int32_t startPosition = state->position;
 
     TokenType type = consumeTemplateLiteralPart(state);
@@ -538,7 +538,7 @@ void tokenize(ParserState* state, EndWhen endWhen) {
                 consumePunctuator(state);
             }
         } else if (peekChar(state) == '`') {
-            tokenizeTemplateLiteral(state);
+            consumeTemplateLiteral(state);
         } else if (isQuote(peekChar(state))) {
             consumeStringLiteral(state, peekChar(state));
         } else if (peekChar(state) == '(') {
