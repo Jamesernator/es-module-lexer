@@ -518,7 +518,6 @@ void consumeRegularExpression(ParserState* state) {
 }
 
 void tokenize(ParserState* state, EndWhen endWhen) {
-    int i = 0;
     consumeWhitespaceAndComments(state);
     while (state->position < state->code.length) {
         if (endWhen == CLOSING_PARENTHESIS

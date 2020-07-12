@@ -19,13 +19,13 @@
   },
   "homepage": "https://github.com/Jamesernator/es-module-lexer#readme",
   "devDependencies": {
-    "@jsxt/eslint-config-typescript": "^3.4.6",
-    "@typescript-eslint/eslint-plugin": "^2.27.0",
-    "@typescript-eslint/parser": "^2.27.0",
+    "@jsxt/eslint-config-typescript": "^4.0.4",
+    "@typescript-eslint/eslint-plugin": "^3.6.0",
+    "@typescript-eslint/parser": "^3.6.0",
     "es-module-lexer": "^0.3.18",
-    "eslint": "^6.8.0",
-    "eslint-plugin-import": "^2.20.2",
-    "typescript": "^3.8.3"
+    "eslint": "^7.4.0",
+    "eslint-plugin-import": "^2.22.0",
+    "typescript": "^3.9.6"
   },
   "dependencies": {
     "@assemblyscript/loader": "^0.9.4",
