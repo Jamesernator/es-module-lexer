@@ -547,7 +547,7 @@ void _finalizeExport(int32_t endPosition, String specifier) {
     finalizeExport(endPosition, (int32_t)specifier.start, specifier.length);
 }
 
-void consumeDeclaration() {
+void consumeFunctionDeclaration() {
 
 }
 
@@ -561,16 +561,19 @@ void consumeExport(ParserState* state) {
         return;
     }
 
-    
+    openExport(startPosition);
     if (stringEqual(peekSequence(state), s(u"const"))
     || stringEqual(peekSequence(state), s(u"let"))
     || stringEqual(peekSequence(state), s(u"var"))) {
-        openExport(startPosition);
         consumeSequence(state);
         consumeWhitespaceAndComments(state);
         String exportedName = consumeSequence(state);
         _emitExportName(exportedName, exportedName);
         _finalizeExport(startPosition + 6, s(u""));
+        return;
+    } else if (stringEqual(peekSequence(state), s(u"async"))) {
+        consumeSequence(state);
+        consumeWhitespaceAndComments(state);
     }
 }
 
