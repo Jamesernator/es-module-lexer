@@ -326,7 +326,7 @@ export default class Parser {
         }
     };
 
-    #consumeNamespaceImport = (): void => {
+    #consumeNamespaceImport = (): string => {
         this.#position += 1;
         this.#consumePunctuator();
         this.#consumeWhitespaceAndComments();
@@ -362,7 +362,14 @@ export default class Parser {
     };
 
     #consumeSequence = (): string => {
-
+        const startPosition = this.#position;
+        while (!this.#atEnd()
+        && !isNewlineOrWhitespaceOrPunctuator(this.#peek())) {
+            this.#position += 1;
+        }
+        const seq = this.#code.slice(startPosition, this.#position);
+        this.#lastToken = seq;
+        return seq;
     };
 
     #tokenize = (endWhen: EndWhen): void => {
