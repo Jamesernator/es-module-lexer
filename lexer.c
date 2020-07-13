@@ -333,15 +333,15 @@ extern void emitImportMeta(
     int32_t endPosition
 );
 
-void _finalizeImport(int32_t endPosition, String specifier) {
-    finalizeImport(endPosition, (int32_t)specifier.start, specifier.length);
-}
-
 void _emitImportName(String importName, String asName) {
     emitImportName(
         (int32_t)importName.start, importName.length,
         (int32_t)asName.start, asName.length
     );
+}
+
+void _finalizeImport(int32_t endPosition, String specifier) {
+    finalizeImport(endPosition, (int32_t)specifier.start, specifier.length);
 }
 
 String consumeNamespaceImport(ParserState* state) {
@@ -388,8 +388,11 @@ void consumeImport(ParserState* state) {
     consumeSequence(state);
     consumeWhitespaceAndComments(state);
 
+    // public field, skip
+    if ('=' == peekChar(state) || ';' == peekChar(state)) {
+        return;
     // dynamic import
-    if (peekChar(state) == '(') {
+    } else if (peekChar(state) == '(') {
         consumePunctuator(state);
         int32_t contentStartPosition = state->position;
         consumeWhitespaceAndComments(state);
@@ -424,6 +427,7 @@ void consumeImport(ParserState* state) {
         openImport(startPosition);
         String specifier = consumeStringLiteral(state, peekChar(state));
         _finalizeImport(state->position, specifier);
+        return;
     }
 
     openImport(startPosition);
@@ -517,6 +521,36 @@ void consumeRegularExpression(ParserState* state) {
     addToken(state, REGULAR_EXPRESSION, startPosition, state->position);
 }
 
+extern void openExport(int32_t startPosition);
+extern void emitExportName(
+    int32_t exportNameStartPosition,
+    int32_t exportNameLength,
+    int32_t asNameStartPosition,
+    int32_t asNameLength
+);
+extern void finalizeExport(
+    int32_t endPosition,
+    int32_t specifierStart,
+    int32_t specifierLength
+);
+
+void _emitExportName(String importName, String asName) {
+    emitExportName(
+        (int32_t)importName.start, importName.length,
+        (int32_t)asName.start, asName.length
+    );
+}
+
+void _finalizeExport(int32_t endPosition, String specifier) {
+    finalizeExport(endPosition, (int32_t)specifier.start, specifier.length);
+}
+
+void consumeExport(ParserState* state) {
+    int startPosition = state->position;
+    consumeSequence(state);
+    consumeWhitespaceAndComments(state);
+}
+
 void tokenize(ParserState* state, EndWhen endWhen) {
     consumeWhitespaceAndComments(state);
     while (state->position < state->code.length) {
@@ -551,8 +585,7 @@ void tokenize(ParserState* state, EndWhen endWhen) {
         && !stringEqual(state->lastToken, s(u"."))) {
             consumeImport(state);
         } else if (stringEqual(peekSequence(state), s(u"export"))) {
-            // TODO: CHange
-            consumeSequence(state);
+            consumeExport(state);
         } else {
             consumeSequence(state);
         }

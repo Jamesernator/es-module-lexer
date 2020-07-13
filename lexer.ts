@@ -18,7 +18,12 @@ type DynamicImport = {
     contentEndPosition: number,
 };
 
-type Export = unknown;
+type Export = {
+    startPosition: number,
+    endPosition: number,
+    exports: Record<string, string>,
+    fromSpecifier: string | null,
+};
 
 type ParseResult = {
     imports: Array<Import>,
@@ -194,6 +199,17 @@ export default class Parser {
         this.#lastToken = this.#code.slice(startPosition, this.#position);
     };
 
+    #consumeSequence = (): string => {
+        const startPosition = this.#position;
+        while (!this.#atEnd()
+        && !isNewlineOrWhitespaceOrPunctuator(this.#peek())) {
+            this.#position += 1;
+        }
+        const seq = this.#code.slice(startPosition, this.#position);
+        this.#lastToken = seq;
+        return seq;
+    };
+
     #consumeBlockComment = (): void => {
         this.#position += 2;
         while (!this.#atEnd()) {
@@ -335,7 +351,8 @@ export default class Parser {
         return this.#consumeSequence();
     };
 
-    #consumeNamedImports = function* (this: Parser): Generator<[string, string]> {
+    #consumeNamedImports = (): Record<string, string> => {
+        const imports = {} as Record<string, string>;
         this.#position += 1;
 
         while (!this.#atEnd() && this.#peek() !== "}") {
@@ -343,33 +360,152 @@ export default class Parser {
             const importedName = this.#consumeSequence();
             this.#consumeWhitespaceAndComments();
             if (isPunctuator(this.#peek())) {
-                yield [importedName, importedName];
+                imports[importedName] = importedName;
             } else {
                 this.#consumeSequence();
                 this.#consumeWhitespaceAndComments();
                 const importedAs = this.#consumeSequence();
-                yield [importedName, importedAs];
+                imports[importedName] = importedAs;
             }
         }
+        return imports;
     };
 
     #consumeImport = (): void => {
+        const startPosition = this.#position;
+        this.#consumeSequence();
+        this.#consumeWhitespaceAndComments();
 
+        // dynamic import
+        if (this.#peek() === "(") {
+            this.#consumePunctuator();
+            const contentStartPosition = this.#position;
+            this.#consumeWhitespaceAndComments();
+            this.#tokenize(EndWhen.closingParenthesis);
+            this.#consumeWhitespaceAndComments();
+            const contentEndPosition = this.#position;
+            this.#consumePunctuator();
+            const endPosition = this.#position;
+            this.#consumeWhitespaceAndComments();
+
+            if (this.#peek() !== "{") {
+                this.#result.dynamicImports.push({
+                    startPosition,
+                    endPosition,
+                    contentStartPosition,
+                    contentEndPosition,
+                });
+            }
+        // import.meta
+        } else if (this.#peek() === ".") {
+            this.#consumePunctuator();
+            this.#consumeWhitespaceAndComments();
+            const meta = this.#consumeSequence();
+            if (meta !== "meta") {
+                throw new SyntaxError(`Unknown import meta-property import.${ meta }`);
+            }
+            this.#result.importMetas.push({
+                startPosition,
+                endPosition: this.#position,
+            });
+        // bare import
+        } else if (isQuote(this.#peek())) {
+            const specifier = this.#consumeStringLiteral();
+            this.#result.imports.push({
+                startPosition,
+                endPosition: this.#position,
+                specifier,
+                imports: {},
+            });
+        // class field
+        } else if (this.#peek() === ";" || this.#peek() === "=") {
+            // Skip
+        } else {
+            const imports = Object.create(null) as Record<string, string>;
+            if (this.#peek() === "{") {
+                Object.assign(imports, this.#consumeNamedImports());
+            } else if (this.#peek() === "*") {
+                imports["*"] = this.#consumeNamespaceImport();
+            } else {
+                const defaultName = this.#consumeSequence();
+                imports.default = defaultName;
+                this.#consumeWhitespaceAndComments();
+                if (this.#peek() === ",") {
+                    this.#consumePunctuator();
+                    this.#consumeWhitespaceAndComments();
+                    if (this.#peek() === "*") {
+                        imports["*"] = this.#consumeNamespaceImport();
+                    } else if (this.#peek() === "{") {
+                        Object.assign(imports, this.#consumeNamedImports());
+                    } else {
+                        throw new SyntaxError(`Unexpected token after default import`);
+                    }
+                }
+            }
+            this.#consumeWhitespaceAndComments();
+            this.#consumeSequence();
+            this.#consumeWhitespaceAndComments();
+            const specifier = this.#consumeStringLiteral();
+            this.#result.imports.push({
+                startPosition,
+                endPosition: this.#position,
+                specifier,
+                imports,
+            });
+        }
     };
 
     #consumeExport = (): void => {
-
-    };
-
-    #consumeSequence = (): string => {
         const startPosition = this.#position;
-        while (!this.#atEnd()
-        && !isNewlineOrWhitespaceOrPunctuator(this.#peek())) {
-            this.#position += 1;
+        this.#consumeSequence();
+        this.#consumeWhitespaceAndComments();
+        if (this.#peekSequence() === "let"
+        || this.#peekSequence() === "const"
+        || this.#peekSequence() === "var") {
+            const endPosition = startPosition + 6;
+            this.#consumeSequence();
+            this.#consumeWhitespaceAndComments();
+            if (this.#peek() === "{" || this.#peek() === "[") {
+                throw new SyntaxError("Destructuring exports are not supported");
+            }
+            const exportName = this.#consumeSequence();
+            this.#result.exports.push({
+                startPosition,
+                endPosition,
+                exports: { [exportName]: exportName },
+                fromSpecifier: null,
+            });
+        } else if (this.#peekSequence() === "class") {
+            const endPosition = startPosition + 6;
+            this.#consumeSequence();
+            this.#consumeWhitespaceAndComments();
+            const className = this.#consumeSequence();
+            this.#result.exports.push({
+                startPosition,
+                endPosition,
+                exports: { [className]: className },
+                fromSpecifier: null,
+            });
+        } else if (this.#peekSequence() === "async" || this.#peekSequence() === "function") {
+            const endPosition = startPosition + 6;
+            const first = this.#consumeSequence();
+            this.#consumeWhitespaceAndComments();
+            if (first === "async") {
+                // function
+                this.#consumeSequence();
+            }
+            this.#consumeWhitespaceAndComments();
+            if (this.#peek() === "*") {
+                this.#consumePunctuator();
+            }
+            const functionName = this.#consumeSequence();
+            this.#result.exports.push({
+                startPosition,
+                endPosition,
+                exports: { [functionName]: functionName },
+                fromSpecifier: null,
+            });
         }
-        const seq = this.#code.slice(startPosition, this.#position);
-        this.#lastToken = seq;
-        return seq;
     };
 
     #tokenize = (endWhen: EndWhen): void => {
