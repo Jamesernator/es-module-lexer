@@ -110,8 +110,18 @@ export default async function parse(code: string): Promise<ParseResult> {
             ) {
                 importMetas.push({ startPosition, endPosition });
             },
-            emitDynamicImport() {
-                console.log("TODO: dynamic import");
+            emitDynamicImport(
+                startPosition: number,
+                endPosition: number,
+                contentStartPosition: number,
+                contentEndPosition: number,
+            ) {
+                dynamicImports.push({
+                    startPosition,
+                    endPosition,
+                    contentStartPosition,
+                    contentEndPosition,
+                });
             },
             openExport(startPosition: number) {
                 openExport = {
@@ -143,16 +153,11 @@ export default async function parse(code: string): Promise<ParseResult> {
                 exports.push({
                     startPosition: openExport.startPosition,
                     endPosition,
-                    specifier: readString(specifierStart, specifierLength),
+                    specifier:
+                        readString(specifierStart, specifierLength) || null,
                     exports: openExport.exports,
                 });
                 openExport = null;
-            },
-            _consoleLog(start: number, length: number) {
-                console.log(readString(start, length));
-            },
-            _consoleLogInt(int: number) {
-                console.log(int);
             },
         },
     });

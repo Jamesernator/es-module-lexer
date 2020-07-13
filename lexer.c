@@ -8,12 +8,14 @@ typedef struct {
     int32_t length;
 } String;
 
+/* 
 extern void _consoleLog(int32_t start, int32_t length);
 extern void _consoleLogInt(int32_t i);
 
 void consoleLog(String message) {
     _consoleLog(message.start, message.length);
 }
+*/
 
 extern void syntaxError(int32_t start, int32_t length);
 
@@ -545,6 +547,10 @@ void _finalizeExport(int32_t endPosition, String specifier) {
     finalizeExport(endPosition, (int32_t)specifier.start, specifier.length);
 }
 
+void consumeDeclaration() {
+
+}
+
 void consumeExport(ParserState* state) {
     int startPosition = state->position;
     consumeSequence(state);
@@ -553,6 +559,18 @@ void consumeExport(ParserState* state) {
     // class field
     if (peekChar(state) == ';' || peekChar(state) == '=') {
         return;
+    }
+
+    
+    if (stringEqual(peekSequence(state), s(u"const"))
+    || stringEqual(peekSequence(state), s(u"let"))
+    || stringEqual(peekSequence(state), s(u"var"))) {
+        openExport(startPosition);
+        consumeSequence(state);
+        consumeWhitespaceAndComments(state);
+        String exportedName = consumeSequence(state);
+        _emitExportName(exportedName, exportedName);
+        _finalizeExport(startPosition + 6, s(u""));
     }
 }
 
@@ -602,8 +620,6 @@ void tokenize(ParserState* state, EndWhen endWhen) {
         raiseSyntaxError(s(u"Reached end without closure"));
     }
 }
-
-
 
 void parse(char16_t* start, int32_t length) {
     String code = (String){ start, length };
