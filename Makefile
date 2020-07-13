@@ -2,7 +2,7 @@ lexer.wat: lexer.wasm
 	./wabt/bin/wasm2wat ./lexer.wasm -o ./lexer.wat
 
 lexer.wasm: ./lexer.c
-	./wasi-sdk-10.0/bin/clang \
+	clang \
 		--target=wasm32 \
 		-O3 \
 		-flto \
@@ -13,7 +13,7 @@ lexer.wasm: ./lexer.c
 		-Wl,--export=parse \
 		-Wl,-z,stack-size=8388608 \
 		-Wl,--allow-undefined \
-		-o ./\lexer.wasm \
+		-o ./lexer.wasm \
 		./lexer.c
 
 optimize: lexer.wasm

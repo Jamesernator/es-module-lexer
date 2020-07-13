@@ -111,7 +111,7 @@ export default async function parse(code: string): Promise<ParseResult> {
                 importMetas.push({ startPosition, endPosition });
             },
             emitDynamicImport() {
-                console.log("dynamic import");
+                console.log("TODO: dynamic import");
             },
             openExport(startPosition: number) {
                 openExport = {

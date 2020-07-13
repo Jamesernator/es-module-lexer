@@ -549,6 +549,11 @@ void consumeExport(ParserState* state) {
     int startPosition = state->position;
     consumeSequence(state);
     consumeWhitespaceAndComments(state);
+
+    // class field
+    if (peekChar(state) == ';' || peekChar(state) == '=') {
+        return;
+    }
 }
 
 void tokenize(ParserState* state, EndWhen endWhen) {
