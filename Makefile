@@ -2,7 +2,6 @@ lexer.wat: lexer.wasm
 	./wabt/bin/wasm2wat ./lexer.wasm -o ./lexer.wat
 
 lexer.wasm: ./lexer.c
-	@mkdir -p lib
 	./wasi-sdk-10.0/bin/clang \
 		--target=wasm32 \
 		-O3 \
