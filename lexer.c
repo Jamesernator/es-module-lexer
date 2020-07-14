@@ -8,7 +8,7 @@ typedef struct {
     int32_t length;
 } String;
 
-//* 
+/* 
 extern void _consoleLog(int32_t start, int32_t length);
 extern void _consoleLogInt(int32_t n);
 void consoleLog(String message) {
@@ -244,7 +244,6 @@ TokenType consumeTemplateLiteralPart(ParserState* state) {
 
 void addToken(ParserState* state, TokenType type, int32_t start, int32_t end) {
     state->lastToken = (String){ state->code.start + start, end - start };
-    consoleLog(state->lastToken);
 }
 
 void consumeTemplateLiteral(ParserState* state) {
@@ -291,13 +290,9 @@ void consumeParens(ParserState* state) {
     String lastToken = state->lastToken;
     int p = parensNo;
     parensNo++;
-    consoleLog(s(u"--openParens--"));
-    _consoleLogInt(p); 
     consumePunctuator(state);
     tokenize(state, CLOSING_PARENTHESIS);
     consumePunctuator(state);
-    consoleLog(s(u"--closeParens--"));
-    _consoleLogInt(p);
     consumeWhitespaceAndComments(state);
     if (peekChar(state) == '/' && isParenKeyword(lastToken)) {
         consumeRegularExpression(state);
@@ -556,7 +551,7 @@ void _finalizeExport(int32_t endPosition, String specifier) {
     finalizeExport(endPosition, (int32_t)specifier.start, specifier.length);
 }
 
-void consumeFunctionDeclaration() {
+void consumeExportFunctionDeclaration() {
 
 }
 

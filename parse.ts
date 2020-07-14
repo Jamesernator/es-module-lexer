@@ -53,8 +53,8 @@ export default async function parse(code: string): Promise<ParseResult> {
             length,
         );
         return [...characters]
-            .map(ch => String.fromCharCode(ch))
-            .join('');
+            .map((ch) => String.fromCharCode(ch))
+            .join("");
     };
 
     let openImport: null | {
@@ -73,7 +73,7 @@ export default async function parse(code: string): Promise<ParseResult> {
                 console.log(readString(start, length));
             },
             _consoleLogInt(n: number) {
-                console.log('>> ' + n);
+                console.log(`>> ${ n }`);
             },
             syntaxError(start: number, length: number) {
                 throw new SyntaxError(readString(start, length));
@@ -188,7 +188,7 @@ export default async function parse(code: string): Promise<ParseResult> {
     for (let i = 0; i < code.length; i += 1) {
         characterArray[i] = code[i].charCodeAt(0);
     }
-    
+
     parse(initialPage*PAGE_SIZE, code.length);
     return {
         imports: imports.sort((a, b) => b.startPosition - a.startPosition),

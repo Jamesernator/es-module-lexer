@@ -1,18 +1,20 @@
 (module
+  (@interface func (export "greeting") (result string)
+    call-export "greeting_"
+    memory-to-string "mem"
+  )
   (type (;0;) (func (param i32 i32)))
-  (type (;1;) (func (param i32)))
-  (type (;2;) (func (param i32 i32 i32 i32)))
-  (type (;3;) (func (param i32 i32 i32)))
+  (type (;1;) (func (param i32 i32 i32 i32)))
+  (type (;2;) (func (param i32 i32 i32)))
+  (type (;3;) (func (param i32)))
   (type (;4;) (func (param i32) (result i32)))
-  (import "env" "_consoleLog" (func $_consoleLog (type 0)))
   (import "env" "syntaxError" (func $syntaxError (type 0)))
-  (import "env" "_consoleLogInt" (func $_consoleLogInt (type 1)))
-  (import "env" "emitImportName" (func $emitImportName (type 2)))
-  (import "env" "finalizeImport" (func $finalizeImport (type 3)))
-  (import "env" "emitDynamicImport" (func $emitDynamicImport (type 2)))
+  (import "env" "emitImportName" (func $emitImportName (type 1)))
+  (import "env" "finalizeImport" (func $finalizeImport (type 2)))
+  (import "env" "emitDynamicImport" (func $emitDynamicImport (type 1)))
   (import "env" "emitImportMeta" (func $emitImportMeta (type 0)))
-  (import "env" "openImport" (func $openImport (type 1)))
-  (func $consumeWhitespaceAndComments (type 1) (param i32)
+  (import "env" "openImport" (func $openImport (type 3)))
+  (func $consumeWhitespaceAndComments (type 3) (param i32)
     (local i32 i32 i32 i32 i32 i32 i32 i32 i32)
     block  ;; label = @1
       local.get 0
@@ -617,15 +619,15 @@
                                   br_if 1 (;@14;)
                                   local.get 0
                                   i32.load offset=12
-                                  local.tee 6
+                                  local.tee 9
                                   i32.eqz
                                   br_if 10 (;@5;)
                                   block  ;; label = @16
                                     local.get 0
                                     i32.load offset=8 align=1
-                                    local.tee 9
+                                    local.tee 11
                                     i32.load16_u
-                                    local.tee 3
+                                    local.tee 6
                                     i32.const -33
                                     i32.add
                                     local.tee 7
@@ -639,7 +641,7 @@
                                     i32.and
                                     br_if 11 (;@5;)
                                   end
-                                  local.get 3
+                                  local.get 6
                                   i32.const -58
                                   i32.add
                                   i32.const 65535
@@ -647,10 +649,10 @@
                                   i32.const 6
                                   i32.lt_u
                                   br_if 10 (;@5;)
-                                  local.get 3
+                                  local.get 6
                                   i32.const 41
                                   i32.ne
-                                  local.get 3
+                                  local.get 6
                                   i32.const -40
                                   i32.add
                                   i32.const 65535
@@ -660,7 +662,7 @@
                                   i32.and
                                   br_if 10 (;@5;)
                                   block  ;; label = @16
-                                    local.get 3
+                                    local.get 6
                                     i32.const -91
                                     i32.add
                                     local.tee 7
@@ -671,11 +673,11 @@
                                     br_table 11 (;@5;) 0 (;@16;) 0 (;@16;) 11 (;@5;) 11 (;@5;)
                                   end
                                   block  ;; label = @16
-                                    local.get 3
+                                    local.get 6
                                     i32.const 125
                                     i32.eq
                                     br_if 0 (;@16;)
-                                    local.get 3
+                                    local.get 6
                                     i32.const -123
                                     i32.add
                                     i32.const 65535
@@ -686,26 +688,26 @@
                                   end
                                   block  ;; label = @16
                                     block  ;; label = @17
-                                      local.get 6
+                                      local.get 9
                                       i32.const 5
                                       i32.ne
                                       br_if 0 (;@17;)
-                                      local.get 9
+                                      local.get 11
                                       i32.const 1024
                                       i32.eq
                                       br_if 12 (;@5;)
-                                      local.get 3
+                                      local.get 6
                                       i32.const 97
                                       i32.ne
                                       br_if 9 (;@8;)
-                                      local.get 9
+                                      local.get 11
                                       i32.load16_u offset=2
                                       i32.const 119
                                       i32.eq
                                       br_if 1 (;@16;)
                                       br 9 (;@8;)
                                     end
-                                    local.get 6
+                                    local.get 9
                                     i32.const -2
                                     i32.add
                                     local.tee 7
@@ -723,249 +725,249 @@
                                                     local.get 7
                                                     br_table 3 (;@21;) 5 (;@19;) 0 (;@24;) 18 (;@6;) 2 (;@22;) 18 (;@6;) 1 (;@23;) 18 (;@6;) 4 (;@20;) 3 (;@21;)
                                                   end
-                                                  local.get 9
+                                                  local.get 11
                                                   i32.const 1036
                                                   i32.eq
                                                   br_if 18 (;@5;)
-                                                  local.get 3
+                                                  local.get 6
                                                   i32.const 99
                                                   i32.ne
                                                   br_if 13 (;@10;)
-                                                  local.get 9
+                                                  local.get 11
                                                   i32.load16_u offset=2
                                                   i32.const 97
                                                   i32.eq
                                                   br_if 6 (;@17;)
                                                   br 13 (;@10;)
                                                 end
-                                                local.get 9
+                                                local.get 11
                                                 i32.const 1046
                                                 i32.eq
                                                 br_if 17 (;@5;)
-                                                local.get 3
+                                                local.get 6
                                                 i32.const 100
                                                 i32.ne
                                                 br_if 16 (;@6;)
-                                                local.get 9
+                                                local.get 11
                                                 i32.load16_u offset=2
                                                 i32.const 101
                                                 i32.ne
                                                 br_if 16 (;@6;)
-                                                local.get 9
+                                                local.get 11
                                                 i32.load16_u offset=4
                                                 i32.const 98
                                                 i32.ne
                                                 br_if 16 (;@6;)
-                                                local.get 9
+                                                local.get 11
                                                 i32.load16_u offset=6
                                                 i32.const 117
                                                 i32.ne
                                                 br_if 16 (;@6;)
-                                                local.get 9
+                                                local.get 11
                                                 i32.load16_u offset=8
                                                 i32.const 103
                                                 i32.ne
                                                 br_if 16 (;@6;)
-                                                local.get 9
+                                                local.get 11
                                                 i32.load16_u offset=10
                                                 i32.const 103
                                                 i32.ne
                                                 br_if 16 (;@6;)
-                                                local.get 9
+                                                local.get 11
                                                 i32.load16_u offset=12
                                                 i32.const 101
                                                 i32.ne
                                                 br_if 16 (;@6;)
-                                                local.get 9
+                                                local.get 11
                                                 i32.load16_u offset=14
                                                 i32.const 114
                                                 i32.ne
                                                 br_if 16 (;@6;)
                                                 br 17 (;@5;)
                                               end
-                                              local.get 9
+                                              local.get 11
                                               i32.const 1064
                                               i32.eq
                                               br_if 16 (;@5;)
-                                              local.get 3
+                                              local.get 6
                                               i32.const 100
                                               i32.ne
                                               br_if 9 (;@12;)
-                                              local.get 9
+                                              local.get 11
                                               i32.load16_u offset=2
                                               i32.const 101
                                               i32.eq
                                               br_if 3 (;@18;)
                                               br 9 (;@12;)
                                             end
-                                            local.get 9
+                                            local.get 11
                                             i32.const 1078
                                             i32.eq
                                             br_if 15 (;@5;)
-                                            local.get 3
+                                            local.get 6
                                             i32.const 100
                                             i32.eq
                                             br_if 7 (;@13;)
-                                            local.get 9
+                                            local.get 11
                                             i32.const 1094
                                             i32.eq
                                             br_if 15 (;@5;)
-                                            local.get 3
+                                            local.get 6
                                             i32.const 105
                                             i32.ne
                                             br_if 14 (;@6;)
-                                            local.get 9
+                                            local.get 11
                                             i32.load16_u offset=2
                                             i32.const 110
                                             i32.ne
                                             br_if 14 (;@6;)
                                             br 15 (;@5;)
                                           end
-                                          local.get 9
+                                          local.get 11
                                           i32.const 1100
                                           i32.eq
                                           br_if 14 (;@5;)
-                                          local.get 3
+                                          local.get 6
                                           i32.const 105
                                           i32.ne
                                           br_if 13 (;@6;)
-                                          local.get 9
+                                          local.get 11
                                           i32.load16_u offset=2
                                           i32.const 110
                                           i32.ne
                                           br_if 13 (;@6;)
-                                          local.get 9
+                                          local.get 11
                                           i32.load16_u offset=4
                                           i32.const 115
                                           i32.ne
                                           br_if 13 (;@6;)
-                                          local.get 9
+                                          local.get 11
                                           i32.load16_u offset=6
                                           i32.const 116
                                           i32.ne
                                           br_if 13 (;@6;)
-                                          local.get 9
+                                          local.get 11
                                           i32.load16_u offset=8
                                           i32.const 97
                                           i32.ne
                                           br_if 13 (;@6;)
-                                          local.get 9
+                                          local.get 11
                                           i32.load16_u offset=10
                                           i32.const 110
                                           i32.ne
                                           br_if 13 (;@6;)
-                                          local.get 9
+                                          local.get 11
                                           i32.load16_u offset=12
                                           i32.const 99
                                           i32.ne
                                           br_if 13 (;@6;)
-                                          local.get 9
+                                          local.get 11
                                           i32.load16_u offset=14
                                           i32.const 101
                                           i32.ne
                                           br_if 13 (;@6;)
-                                          local.get 9
+                                          local.get 11
                                           i32.load16_u offset=16
                                           i32.const 111
                                           i32.ne
                                           br_if 13 (;@6;)
-                                          local.get 9
+                                          local.get 11
                                           i32.load16_u offset=18
                                           i32.const 102
                                           i32.ne
                                           br_if 13 (;@6;)
                                           br 14 (;@5;)
                                         end
-                                        local.get 9
+                                        local.get 11
                                         i32.const 1122
                                         i32.eq
                                         br_if 13 (;@5;)
-                                        local.get 3
+                                        local.get 6
                                         i32.const 110
                                         i32.ne
                                         br_if 12 (;@6;)
-                                        local.get 9
+                                        local.get 11
                                         i32.load16_u offset=2
                                         i32.const 101
                                         i32.ne
                                         br_if 12 (;@6;)
-                                        local.get 9
+                                        local.get 11
                                         i32.load16_u offset=4
                                         i32.const 119
                                         i32.eq
                                         br_if 13 (;@5;)
                                         br 12 (;@6;)
                                       end
-                                      local.get 9
+                                      local.get 11
                                       i32.load16_u offset=4
                                       i32.const 108
                                       i32.ne
                                       br_if 5 (;@12;)
-                                      local.get 9
+                                      local.get 11
                                       i32.load16_u offset=6
                                       i32.const 101
                                       i32.ne
                                       br_if 5 (;@12;)
-                                      local.get 9
+                                      local.get 11
                                       i32.load16_u offset=8
                                       i32.const 116
                                       i32.ne
                                       br_if 5 (;@12;)
-                                      local.get 9
+                                      local.get 11
                                       i32.load16_u offset=10
                                       i32.const 101
                                       i32.eq
                                       br_if 12 (;@5;)
-                                      local.get 9
+                                      local.get 11
                                       i32.const 1130
                                       i32.eq
                                       br_if 12 (;@5;)
-                                      local.get 9
+                                      local.get 11
                                       i32.const 1156
                                       i32.ne
                                       br_if 6 (;@11;)
                                       br 12 (;@5;)
                                     end
-                                    local.get 9
+                                    local.get 11
                                     i32.load16_u offset=4
                                     i32.const 115
                                     i32.ne
                                     br_if 6 (;@10;)
-                                    local.get 9
+                                    local.get 11
                                     i32.load16_u offset=6
                                     i32.const 101
                                     i32.eq
                                     br_if 11 (;@5;)
-                                    local.get 9
+                                    local.get 11
                                     i32.const 1084
                                     i32.eq
                                     br_if 11 (;@5;)
-                                    local.get 9
+                                    local.get 11
                                     i32.const 1170
                                     i32.ne
                                     br_if 7 (;@9;)
                                     br 11 (;@5;)
                                   end
-                                  local.get 9
+                                  local.get 11
                                   i32.load16_u offset=4
                                   i32.const 97
                                   i32.ne
                                   br_if 7 (;@8;)
-                                  local.get 9
+                                  local.get 11
                                   i32.load16_u offset=6
                                   i32.const 105
                                   i32.ne
                                   br_if 7 (;@8;)
-                                  local.get 9
+                                  local.get 11
                                   i32.load16_u offset=8
                                   i32.const 116
                                   i32.eq
                                   br_if 10 (;@5;)
-                                  local.get 9
+                                  local.get 11
                                   i32.const 1144
                                   i32.eq
                                   br_if 10 (;@5;)
-                                  local.get 9
+                                  local.get 11
                                   i32.const 1180
                                   i32.ne
                                   br_if 8 (;@7;)
@@ -979,18 +981,13 @@
                                 i32.load offset=16
                                 local.get 3
                                 i32.sub
-                                local.tee 10
                                 i32.store offset=12
                                 local.get 0
                                 local.get 0
                                 i32.load
                                 local.get 8
                                 i32.add
-                                local.tee 3
                                 i32.store offset=8
-                                local.get 3
-                                local.get 10
-                                call $_consoleLog
                                 local.get 7
                                 i32.const 1
                                 i32.eq
@@ -1010,7 +1007,6 @@
                                   i32.load offset=16
                                   local.get 7
                                   i32.sub
-                                  local.tee 3
                                   i32.store offset=12
                                   local.get 0
                                   local.get 0
@@ -1019,11 +1015,7 @@
                                   i32.const 1
                                   i32.shl
                                   i32.add
-                                  local.tee 7
                                   i32.store offset=8
-                                  local.get 7
-                                  local.get 3
-                                  call $_consoleLog
                                   local.get 10
                                   i32.const 4
                                   i32.ne
@@ -1121,6 +1113,11 @@
                                                       i32.ne
                                                       br_if 4 (;@21;)
                                                       local.get 0
+                                                      local.get 3
+                                                      i32.const 1
+                                                      i32.add
+                                                      i32.store offset=16
+                                                      local.get 0
                                                       i32.load offset=12
                                                       local.set 6
                                                       local.get 0
@@ -1132,15 +1129,6 @@
                                                       local.get 0
                                                       local.get 10
                                                       i32.store offset=8
-                                                      local.get 10
-                                                      i32.const 1
-                                                      call $_consoleLog
-                                                      local.get 0
-                                                      local.get 0
-                                                      i32.load offset=16
-                                                      i32.const 1
-                                                      i32.add
-                                                      i32.store offset=16
                                                       local.get 0
                                                       i32.const 2
                                                       call $tokenize
@@ -1149,23 +1137,19 @@
                                                       i32.store offset=12
                                                       local.get 0
                                                       local.get 0
-                                                      i32.load
-                                                      local.get 0
                                                       i32.load offset=16
-                                                      i32.const 1
-                                                      i32.shl
-                                                      i32.add
                                                       local.tee 7
-                                                      i32.store offset=8
-                                                      local.get 7
-                                                      i32.const 1
-                                                      call $_consoleLog
-                                                      local.get 0
-                                                      local.get 0
-                                                      i32.load offset=16
                                                       i32.const 1
                                                       i32.add
                                                       i32.store offset=16
+                                                      local.get 0
+                                                      local.get 0
+                                                      i32.load
+                                                      local.get 7
+                                                      i32.const 1
+                                                      i32.shl
+                                                      i32.add
+                                                      i32.store offset=8
                                                       local.get 0
                                                       call $consumeWhitespaceAndComments
                                                       local.get 0
@@ -1193,46 +1177,29 @@
                                                       local.get 6
                                                       br_table 5 (;@20;) 4 (;@21;) 4 (;@21;) 4 (;@21;) 5 (;@20;) 5 (;@20;) 4 (;@21;) 0 (;@25;) 5 (;@20;)
                                                     end
-                                                    i32.const 0
-                                                    i32.const 0
-                                                    i32.load offset=2008
-                                                    local.tee 7
+                                                    local.get 0
+                                                    local.get 3
                                                     i32.const 1
                                                     i32.add
-                                                    i32.store offset=2008
+                                                    i32.store offset=16
                                                     local.get 0
                                                     i32.load offset=12
                                                     local.set 6
                                                     local.get 0
-                                                    i32.load offset=8
-                                                    local.set 3
-                                                    i32.const 1796
-                                                    i32.const 14
-                                                    call $_consoleLog
-                                                    local.get 7
-                                                    call $_consoleLogInt
-                                                    local.get 0
                                                     i32.const 1
                                                     i32.store offset=12
                                                     local.get 0
+                                                    i32.load offset=8
+                                                    local.set 3
                                                     local.get 0
-                                                    i32.load
-                                                    local.get 0
-                                                    i32.load offset=16
-                                                    i32.const 1
-                                                    i32.shl
-                                                    i32.add
-                                                    local.tee 10
-                                                    i32.store offset=8
                                                     local.get 10
-                                                    i32.const 1
-                                                    call $_consoleLog
-                                                    local.get 0
-                                                    local.get 0
-                                                    i32.load offset=16
+                                                    i32.store offset=8
+                                                    i32.const 0
+                                                    i32.const 0
+                                                    i32.load offset=1948
                                                     i32.const 1
                                                     i32.add
-                                                    i32.store offset=16
+                                                    i32.store offset=1948
                                                     local.get 0
                                                     i32.const 3
                                                     call $tokenize
@@ -1241,28 +1208,19 @@
                                                     i32.store offset=12
                                                     local.get 0
                                                     local.get 0
-                                                    i32.load
-                                                    local.get 0
                                                     i32.load offset=16
-                                                    i32.const 1
-                                                    i32.shl
-                                                    i32.add
-                                                    local.tee 10
-                                                    i32.store offset=8
-                                                    local.get 10
-                                                    i32.const 1
-                                                    call $_consoleLog
-                                                    local.get 0
-                                                    local.get 0
-                                                    i32.load offset=16
+                                                    local.tee 7
                                                     i32.const 1
                                                     i32.add
                                                     i32.store offset=16
-                                                    i32.const 1826
-                                                    i32.const 15
-                                                    call $_consoleLog
+                                                    local.get 0
+                                                    local.get 0
+                                                    i32.load
                                                     local.get 7
-                                                    call $_consoleLogInt
+                                                    i32.const 1
+                                                    i32.shl
+                                                    i32.add
+                                                    i32.store offset=8
                                                     local.get 0
                                                     call $consumeWhitespaceAndComments
                                                     local.get 0
@@ -1291,7 +1249,7 @@
                                                             br_table 0 (;@28;) 1 (;@27;) 24 (;@4;) 2 (;@26;) 0 (;@28;)
                                                           end
                                                           local.get 3
-                                                          i32.const 1858
+                                                          i32.const 1796
                                                           i32.eq
                                                           br_if 2 (;@25;)
                                                           local.get 3
@@ -1307,7 +1265,7 @@
                                                           br 23 (;@4;)
                                                         end
                                                         local.get 3
-                                                        i32.const 1864
+                                                        i32.const 1802
                                                         i32.eq
                                                         br_if 1 (;@25;)
                                                         local.get 3
@@ -1328,7 +1286,7 @@
                                                         br 22 (;@4;)
                                                       end
                                                       local.get 3
-                                                      i32.const 1872
+                                                      i32.const 1810
                                                       i32.eq
                                                       br_if 0 (;@25;)
                                                       local.get 3
@@ -1635,12 +1593,13 @@
                                                 i32.load align=1
                                                 local.get 0
                                                 i32.load offset=16
+                                                local.tee 10
                                                 i32.const 1
                                                 i32.shl
                                                 i32.add
-                                                local.tee 10
-                                                i32.load16_u
                                                 local.tee 6
+                                                i32.load16_u
+                                                local.tee 9
                                                 i32.const -40
                                                 i32.add
                                                 local.tee 7
@@ -1656,14 +1615,10 @@
                                                   i32.const 1
                                                   i32.store offset=12
                                                   local.get 0
-                                                  local.get 10
+                                                  local.get 6
                                                   i32.store offset=8
+                                                  local.get 0
                                                   local.get 10
-                                                  i32.const 1
-                                                  call $_consoleLog
-                                                  local.get 0
-                                                  local.get 0
-                                                  i32.load offset=16
                                                   i32.const 1
                                                   i32.add
                                                   local.tee 10
@@ -1680,25 +1635,20 @@
                                                   i32.store offset=12
                                                   local.get 0
                                                   local.get 0
-                                                  i32.load
-                                                  local.get 0
                                                   i32.load offset=16
+                                                  local.tee 7
+                                                  i32.const 1
+                                                  i32.add
                                                   local.tee 6
+                                                  i32.store offset=16
+                                                  local.get 0
+                                                  local.get 0
+                                                  i32.load
+                                                  local.get 7
                                                   i32.const 1
                                                   i32.shl
                                                   i32.add
-                                                  local.tee 7
                                                   i32.store offset=8
-                                                  local.get 7
-                                                  i32.const 1
-                                                  call $_consoleLog
-                                                  local.get 0
-                                                  local.get 0
-                                                  i32.load offset=16
-                                                  i32.const 1
-                                                  i32.add
-                                                  local.tee 7
-                                                  i32.store offset=16
                                                   local.get 0
                                                   call $consumeWhitespaceAndComments
                                                   local.get 0
@@ -1713,9 +1663,9 @@
                                                   i32.eq
                                                   br_if 19 (;@4;)
                                                   local.get 3
-                                                  local.get 7
-                                                  local.get 10
                                                   local.get 6
+                                                  local.get 10
+                                                  local.get 7
                                                   call $emitDynamicImport
                                                   br 19 (;@4;)
                                                 end
@@ -1723,14 +1673,10 @@
                                                 i32.const 1
                                                 i32.store offset=12
                                                 local.get 0
-                                                local.get 10
+                                                local.get 6
                                                 i32.store offset=8
+                                                local.get 0
                                                 local.get 10
-                                                i32.const 1
-                                                call $_consoleLog
-                                                local.get 0
-                                                local.get 0
-                                                i32.load offset=16
                                                 i32.const 1
                                                 i32.add
                                                 i32.store offset=16
@@ -1762,7 +1708,7 @@
                                               local.get 3
                                               call $openImport
                                               block  ;; label = @22
-                                                local.get 6
+                                                local.get 9
                                                 i32.const 255
                                                 i32.and
                                                 i32.const -34
@@ -1860,24 +1806,18 @@
                                                 i32.const 1
                                                 i32.add
                                                 local.tee 7
-                                                i32.store offset=16
-                                                local.get 0
-                                                local.get 7
                                                 local.get 12
                                                 i32.sub
-                                                local.tee 7
                                                 i32.store offset=12
                                                 local.get 0
                                                 local.get 9
                                                 local.get 8
                                                 i32.add
-                                                local.tee 10
                                                 i32.store offset=8
-                                                local.get 10
-                                                local.get 7
-                                                call $_consoleLog
                                                 local.get 0
-                                                i32.load offset=16
+                                                local.get 7
+                                                i32.store offset=16
+                                                local.get 7
                                                 local.get 0
                                                 i64.load offset=8 align=4
                                                 local.tee 15
@@ -1893,13 +1833,13 @@
                                                 block  ;; label = @23
                                                   local.get 0
                                                   i32.load align=1
-                                                  local.tee 10
                                                   local.get 0
                                                   i32.load offset=16
-                                                  local.tee 3
+                                                  local.tee 10
                                                   i32.const 1
                                                   i32.shl
                                                   i32.add
+                                                  local.tee 3
                                                   i32.load16_u
                                                   local.tee 7
                                                   i32.const 123
@@ -1914,28 +1854,15 @@
                                                     i32.const 1
                                                     i32.store offset=12
                                                     local.get 0
-                                                    local.get 3
-                                                    i32.const 1
-                                                    i32.add
-                                                    local.tee 7
-                                                    i32.store offset=16
-                                                    local.get 0
                                                     local.get 10
-                                                    local.get 7
-                                                    i32.const 1
-                                                    i32.shl
-                                                    i32.add
-                                                    local.tee 7
-                                                    i32.store offset=8
-                                                    local.get 7
-                                                    i32.const 1
-                                                    call $_consoleLog
-                                                    local.get 0
-                                                    local.get 0
-                                                    i32.load offset=16
-                                                    i32.const 1
+                                                    i32.const 2
                                                     i32.add
                                                     i32.store offset=16
+                                                    local.get 0
+                                                    local.get 3
+                                                    i32.const 2
+                                                    i32.add
+                                                    i32.store offset=8
                                                     local.get 0
                                                     call $consumeWhitespaceAndComments
                                                     local.get 2
@@ -1975,10 +1902,11 @@
                                                   i32.load align=1
                                                   local.get 0
                                                   i32.load offset=16
+                                                  local.tee 7
                                                   i32.const 1
                                                   i32.shl
                                                   i32.add
-                                                  local.tee 7
+                                                  local.tee 10
                                                   i32.load16_u
                                                   i32.const 44
                                                   i32.ne
@@ -1987,14 +1915,10 @@
                                                   i32.const 1
                                                   i32.store offset=12
                                                   local.get 0
-                                                  local.get 7
+                                                  local.get 10
                                                   i32.store offset=8
+                                                  local.get 0
                                                   local.get 7
-                                                  i32.const 1
-                                                  call $_consoleLog
-                                                  local.get 0
-                                                  local.get 0
-                                                  i32.load offset=16
                                                   i32.const 1
                                                   i32.add
                                                   i32.store offset=16
@@ -2002,13 +1926,13 @@
                                                   call $consumeWhitespaceAndComments
                                                   local.get 0
                                                   i32.load align=1
-                                                  local.tee 10
                                                   local.get 0
                                                   i32.load offset=16
-                                                  local.tee 3
+                                                  local.tee 10
                                                   i32.const 1
                                                   i32.shl
                                                   i32.add
+                                                  local.tee 3
                                                   i32.load16_u
                                                   local.tee 7
                                                   i32.const 123
@@ -2023,28 +1947,15 @@
                                                     i32.const 1
                                                     i32.store offset=12
                                                     local.get 0
-                                                    local.get 3
-                                                    i32.const 1
-                                                    i32.add
-                                                    local.tee 7
-                                                    i32.store offset=16
-                                                    local.get 0
                                                     local.get 10
-                                                    local.get 7
-                                                    i32.const 1
-                                                    i32.shl
-                                                    i32.add
-                                                    local.tee 7
-                                                    i32.store offset=8
-                                                    local.get 7
-                                                    i32.const 1
-                                                    call $_consoleLog
-                                                    local.get 0
-                                                    local.get 0
-                                                    i32.load offset=16
-                                                    i32.const 1
+                                                    i32.const 2
                                                     i32.add
                                                     i32.store offset=16
+                                                    local.get 0
+                                                    local.get 3
+                                                    i32.const 2
+                                                    i32.add
+                                                    i32.store offset=8
                                                     local.get 0
                                                     call $consumeWhitespaceAndComments
                                                     local.get 2
@@ -2168,24 +2079,18 @@
                                               i32.const 1
                                               i32.add
                                               local.tee 7
-                                              i32.store offset=16
-                                              local.get 0
-                                              local.get 7
                                               local.get 12
                                               i32.sub
-                                              local.tee 7
                                               i32.store offset=12
                                               local.get 0
                                               local.get 9
                                               local.get 8
                                               i32.add
-                                              local.tee 10
                                               i32.store offset=8
-                                              local.get 10
-                                              local.get 7
-                                              call $_consoleLog
                                               local.get 0
-                                              i32.load offset=16
+                                              local.get 7
+                                              i32.store offset=16
+                                              local.get 7
                                               local.get 0
                                               i64.load offset=8 align=4
                                               local.tee 15
@@ -2220,12 +2125,8 @@
                                           local.get 0
                                           local.get 10
                                           i32.store offset=8
-                                          local.get 10
-                                          i32.const 1
-                                          call $_consoleLog
                                           local.get 0
-                                          local.get 0
-                                          i32.load offset=16
+                                          local.get 3
                                           i32.const 1
                                           i32.add
                                           i32.store offset=16
@@ -2412,222 +2313,217 @@
                               local.get 7
                               local.get 3
                               i32.sub
-                              local.tee 7
                               i32.store offset=12
                               local.get 0
                               local.get 6
                               local.get 8
                               i32.add
-                              local.tee 10
                               i32.store offset=8
-                              local.get 10
-                              local.get 7
-                              call $_consoleLog
                               br 9 (;@4;)
                             end
-                            local.get 9
+                            local.get 11
                             i32.load16_u offset=2
                             i32.const 111
                             i32.eq
                             br_if 7 (;@5;)
-                            local.get 9
+                            local.get 11
                             i32.const 1094
                             i32.ne
                             br_if 6 (;@6;)
                             br 7 (;@5;)
                           end
-                          local.get 9
+                          local.get 11
                           i32.const 1130
                           i32.eq
                           br_if 6 (;@5;)
                           block  ;; label = @12
-                            local.get 3
+                            local.get 6
                             i32.const 114
                             i32.ne
                             br_if 0 (;@12;)
-                            local.get 9
+                            local.get 11
                             i32.load16_u offset=2
                             i32.const 101
                             i32.ne
                             br_if 0 (;@12;)
-                            local.get 9
+                            local.get 11
                             i32.load16_u offset=4
                             i32.const 116
                             i32.ne
                             br_if 0 (;@12;)
-                            local.get 9
+                            local.get 11
                             i32.load16_u offset=6
                             i32.const 117
                             i32.ne
                             br_if 0 (;@12;)
-                            local.get 9
+                            local.get 11
                             i32.load16_u offset=8
                             i32.const 114
                             i32.ne
                             br_if 0 (;@12;)
-                            local.get 9
+                            local.get 11
                             i32.load16_u offset=10
                             i32.const 110
                             i32.eq
                             br_if 7 (;@5;)
-                            local.get 9
+                            local.get 11
                             i32.const 1156
                             i32.ne
                             br_if 6 (;@6;)
                             br 7 (;@5;)
                           end
-                          local.get 9
+                          local.get 11
                           i32.const 1156
                           i32.eq
                           br_if 6 (;@5;)
                         end
-                        local.get 3
+                        local.get 6
                         i32.const 116
                         i32.ne
                         br_if 4 (;@6;)
-                        local.get 9
+                        local.get 11
                         i32.load16_u offset=2
                         i32.const 121
                         i32.ne
                         br_if 4 (;@6;)
-                        local.get 9
+                        local.get 11
                         i32.load16_u offset=4
                         i32.const 112
                         i32.ne
                         br_if 4 (;@6;)
-                        local.get 9
+                        local.get 11
                         i32.load16_u offset=6
                         i32.const 101
                         i32.ne
                         br_if 4 (;@6;)
-                        local.get 9
+                        local.get 11
                         i32.load16_u offset=8
                         i32.const 111
                         i32.ne
                         br_if 4 (;@6;)
-                        local.get 9
+                        local.get 11
                         i32.load16_u offset=10
                         i32.const 102
                         i32.ne
                         br_if 4 (;@6;)
                         br 5 (;@5;)
                       end
-                      local.get 9
+                      local.get 11
                       i32.const 1084
                       i32.eq
                       br_if 4 (;@5;)
                       block  ;; label = @10
-                        local.get 3
+                        local.get 6
                         i32.const 101
                         i32.ne
                         br_if 0 (;@10;)
-                        local.get 9
+                        local.get 11
                         i32.load16_u offset=2
                         i32.const 108
                         i32.ne
                         br_if 0 (;@10;)
-                        local.get 9
+                        local.get 11
                         i32.load16_u offset=4
                         i32.const 115
                         i32.ne
                         br_if 0 (;@10;)
-                        local.get 9
+                        local.get 11
                         i32.load16_u offset=6
                         i32.const 101
                         i32.eq
                         br_if 5 (;@5;)
-                        local.get 9
+                        local.get 11
                         i32.const 1170
                         i32.ne
                         br_if 4 (;@6;)
                         br 5 (;@5;)
                       end
-                      local.get 9
+                      local.get 11
                       i32.const 1170
                       i32.eq
                       br_if 4 (;@5;)
                     end
-                    local.get 3
+                    local.get 6
                     i32.const 118
                     i32.ne
                     br_if 2 (;@6;)
-                    local.get 9
+                    local.get 11
                     i32.load16_u offset=2
                     i32.const 111
                     i32.ne
                     br_if 2 (;@6;)
-                    local.get 9
+                    local.get 11
                     i32.load16_u offset=4
                     i32.const 105
                     i32.ne
                     br_if 2 (;@6;)
-                    local.get 9
+                    local.get 11
                     i32.load16_u offset=6
                     i32.const 100
                     i32.ne
                     br_if 2 (;@6;)
                     br 3 (;@5;)
                   end
-                  local.get 9
+                  local.get 11
                   i32.const 1144
                   i32.eq
                   br_if 2 (;@5;)
                   block  ;; label = @8
-                    local.get 3
+                    local.get 6
                     i32.const 116
                     i32.ne
                     br_if 0 (;@8;)
-                    local.get 9
+                    local.get 11
                     i32.load16_u offset=2
                     i32.const 104
                     i32.ne
                     br_if 0 (;@8;)
-                    local.get 9
+                    local.get 11
                     i32.load16_u offset=4
                     i32.const 114
                     i32.ne
                     br_if 0 (;@8;)
-                    local.get 9
+                    local.get 11
                     i32.load16_u offset=6
                     i32.const 111
                     i32.ne
                     br_if 0 (;@8;)
-                    local.get 9
+                    local.get 11
                     i32.load16_u offset=8
                     i32.const 119
                     i32.eq
                     br_if 3 (;@5;)
-                    local.get 9
+                    local.get 11
                     i32.const 1180
                     i32.ne
                     br_if 1 (;@7;)
                     br 3 (;@5;)
                   end
-                  local.get 9
+                  local.get 11
                   i32.const 1180
                   i32.eq
                   br_if 2 (;@5;)
                 end
-                local.get 3
+                local.get 6
                 i32.const 121
                 i32.ne
                 br_if 0 (;@6;)
-                local.get 9
+                local.get 11
                 i32.load16_u offset=2
                 i32.const 105
                 i32.ne
                 br_if 0 (;@6;)
-                local.get 9
+                local.get 11
                 i32.load16_u offset=4
                 i32.const 101
                 i32.ne
                 br_if 0 (;@6;)
-                local.get 9
+                local.get 11
                 i32.load16_u offset=6
                 i32.const 108
                 i32.ne
                 br_if 0 (;@6;)
-                local.get 9
+                local.get 11
                 i32.load16_u offset=8
                 i32.const 100
                 i32.eq
@@ -2639,12 +2535,8 @@
               local.get 0
               local.get 10
               i32.store offset=8
-              local.get 10
-              i32.const 1
-              call $_consoleLog
               local.get 0
-              local.get 0
-              i32.load offset=16
+              local.get 3
               i32.const 1
               i32.add
               i32.store offset=16
@@ -2677,7 +2569,7 @@
     i32.const 16
     i32.add
     global.set 0)
-  (func $consumeRegularExpression (type 1) (param i32)
+  (func $consumeRegularExpression (type 3) (param i32)
     (local i32 i32 i32 i32 i32 i32)
     local.get 0
     local.get 0
@@ -2788,7 +2680,7 @@
               i32.store offset=16
               br 1 (;@4;)
             end
-            i32.const 1948
+            i32.const 1886
             i32.const 28
             call $syntaxError
             local.get 0
@@ -2810,7 +2702,7 @@
           br_if 0 (;@3;)
         end
       end
-      i32.const 1884
+      i32.const 1822
       i32.const 31
       call $syntaxError
       local.get 0
@@ -2832,7 +2724,6 @@
     local.get 6
     local.get 1
     i32.sub
-    local.tee 6
     i32.store
     local.get 0
     local.get 4
@@ -2840,11 +2731,7 @@
     i32.const 1
     i32.shl
     i32.add
-    local.tee 2
-    i32.store offset=8
-    local.get 2
-    local.get 6
-    call $_consoleLog)
+    i32.store offset=8)
   (func $consumeSequence (type 0) (param i32 i32)
     (local i32 i32 i32 i32 i32 i32 i32)
     block  ;; label = @1
@@ -2956,7 +2843,6 @@
     local.get 5
     local.get 2
     i32.sub
-    local.tee 7
     i32.store
     local.get 1
     local.get 4
@@ -2964,17 +2850,13 @@
     i32.const 1
     i32.shl
     i32.add
-    local.tee 5
     i32.store offset=8
-    local.get 5
-    local.get 7
-    call $_consoleLog
     local.get 0
     local.get 1
     i64.load offset=8 align=4
     i64.store align=4)
-  (func $consumeNamedImports (type 1) (param i32)
-    (local i32 i32 i32)
+  (func $consumeNamedImports (type 3) (param i32)
+    (local i32 i32 i32 i32)
     global.get 0
     i32.const 16
     i32.sub
@@ -2994,10 +2876,11 @@
         i32.load offset=4
         i32.ge_s
         br_if 0 (;@2;)
+        local.get 0
+        i32.load align=1
+        local.set 3
         loop  ;; label = @3
-          local.get 0
-          i32.load align=1
-          local.tee 3
+          local.get 3
           local.get 2
           i32.const 1
           i32.shl
@@ -3109,13 +2992,14 @@
           block  ;; label = @4
             local.get 0
             i32.load align=1
+            local.tee 3
             local.get 0
             i32.load offset=16
             local.tee 2
             i32.const 1
             i32.shl
             i32.add
-            local.tee 3
+            local.tee 4
             i32.load16_u
             i32.const 44
             i32.ne
@@ -3124,14 +3008,10 @@
             i32.const 1
             i32.store offset=12
             local.get 0
-            local.get 3
+            local.get 4
             i32.store offset=8
-            local.get 3
-            i32.const 1
-            call $_consoleLog
             local.get 0
-            local.get 0
-            i32.load offset=16
+            local.get 2
             i32.const 1
             i32.add
             local.tee 2
@@ -3155,6 +3035,11 @@
       local.set 2
     end
     local.get 0
+    local.get 2
+    i32.const 1
+    i32.add
+    i32.store offset=16
+    local.get 0
     i32.const 12
     i32.add
     i32.const 1
@@ -3165,17 +3050,7 @@
     i32.const 1
     i32.shl
     i32.add
-    local.tee 2
     i32.store offset=8
-    local.get 2
-    i32.const 1
-    call $_consoleLog
-    local.get 0
-    local.get 0
-    i32.load offset=16
-    i32.const 1
-    i32.add
-    i32.store offset=16
     local.get 1
     i32.const 16
     i32.add
@@ -3193,7 +3068,7 @@
     i64.const 0
     i64.store align=4
     local.get 2
-    i32.const 2006
+    i32.const 1944
     i32.store offset=16
     local.get 2
     local.get 1
@@ -3212,7 +3087,7 @@
     global.set 0)
   (table (;0;) 1 1 funcref)
   (memory (;0;) 129)
-  (global (;0;) (mut i32) (i32.const 8390624))
+  (global (;0;) (mut i32) (i32.const 8390560))
   (export "memory" (memory 0))
   (export "parse" (func $parse))
-  (data (;0;) (i32.const 1024) "a\00w\00a\00i\00t\00\00\00c\00a\00s\00e\00\00\00d\00e\00b\00u\00g\00g\00e\00r\00\00\00d\00e\00l\00e\00t\00e\00\00\00d\00o\00\00\00e\00l\00s\00e\00\00\00i\00n\00\00\00i\00n\00s\00t\00a\00n\00c\00e\00o\00f\00\00\00n\00e\00w\00\00\00r\00e\00t\00u\00r\00n\00\00\00t\00h\00r\00o\00w\00\00\00t\00y\00p\00e\00o\00f\00\00\00v\00o\00i\00d\00\00\00y\00i\00e\00l\00d\00\00\00/\00/\00\00\00/\00*\00\00\00F\00a\00i\00l\00e\00d\00 \00t\00o\00 \00c\00o\00n\00s\00u\00m\00e\00 \00b\00l\00o\00c\00k\00 \00c\00o\00m\00m\00e\00n\00t\00\00\00*\00/\00\00\00$\00{\00\00\00T\00e\00m\00p\00l\00a\00t\00e\00 \00l\00i\00t\00e\00r\00a\00l\00 \00r\00e\00a\00c\00h\00e\00d\00 \00e\00n\00d\00 \00o\00f\00 \00c\00o\00d\00e\00\00\00U\00n\00t\00e\00r\00m\00i\00n\00a\00t\00e\00d\00 \00s\00t\00r\00i\00n\00g\00 \00l\00i\00t\00e\00r\00a\00l\00\00\00i\00m\00p\00o\00r\00t\00\00\00.\00\00\00e\00x\00p\00o\00r\00t\00\00\00R\00e\00a\00c\00h\00e\00d\00 \00e\00n\00d\00 \00w\00i\00t\00h\00o\00u\00t\00 \00c\00l\00o\00s\00i\00n\00g\00 \00p\00a\00r\00e\00n\00t\00h\00e\00s\00i\00s\00\00\00m\00e\00t\00a\00\00\00i\00m\00p\00o\00r\00t\00.\00m\00e\00t\00a\00 \00i\00s\00 \00o\00n\00l\00y\00 \00i\00m\00p\00o\00r\00t\00 \00m\00e\00t\00a\00p\00r\00o\00p\00e\00r\00t\00y\00 \00s\00u\00p\00p\00o\00r\00t\00e\00d\00\00\00*\00\00\00d\00e\00f\00a\00u\00l\00t\00\00\00U\00n\00e\00x\00p\00e\00c\00t\00e\00d\00 \00t\00o\00k\00e\00n\00 \00a\00f\00t\00e\00r\00 \00d\00e\00f\00a\00u\00l\00t\00 \00i\00m\00p\00o\00r\00t\00\00\00U\00n\00c\00l\00o\00s\00e\00d\00 \00n\00a\00m\00e\00d\00 \00i\00m\00p\00o\00r\00t\00\00\00;\00\00\00)\00\00\00f\00i\00n\00a\00l\00l\00y\00\00\00-\00-\00o\00p\00e\00n\00P\00a\00r\00e\00n\00s\00-\00-\00\00\00-\00-\00c\00l\00o\00s\00e\00P\00a\00r\00e\00n\00s\00-\00-\00\00\00i\00f\00\00\00f\00o\00r\00\00\00w\00h\00i\00l\00e\00\00\00U\00n\00t\00e\00r\00m\00i\00n\00a\00t\00e\00d\00 \00R\00e\00g\00u\00l\00a\00r\00 \00E\00x\00p\00r\00e\00s\00s\00i\00o\00n\00\00\00U\00n\00t\00e\00r\00m\00i\00n\00a\00t\00e\00d\00 \00C\00h\00a\00r\00a\00c\00t\00e\00r\00 \00C\00l\00a\00s\00s\00\00\00\00\00"))
+  (data (;0;) (i32.const 1024) "a\00w\00a\00i\00t\00\00\00c\00a\00s\00e\00\00\00d\00e\00b\00u\00g\00g\00e\00r\00\00\00d\00e\00l\00e\00t\00e\00\00\00d\00o\00\00\00e\00l\00s\00e\00\00\00i\00n\00\00\00i\00n\00s\00t\00a\00n\00c\00e\00o\00f\00\00\00n\00e\00w\00\00\00r\00e\00t\00u\00r\00n\00\00\00t\00h\00r\00o\00w\00\00\00t\00y\00p\00e\00o\00f\00\00\00v\00o\00i\00d\00\00\00y\00i\00e\00l\00d\00\00\00/\00/\00\00\00/\00*\00\00\00F\00a\00i\00l\00e\00d\00 \00t\00o\00 \00c\00o\00n\00s\00u\00m\00e\00 \00b\00l\00o\00c\00k\00 \00c\00o\00m\00m\00e\00n\00t\00\00\00*\00/\00\00\00$\00{\00\00\00T\00e\00m\00p\00l\00a\00t\00e\00 \00l\00i\00t\00e\00r\00a\00l\00 \00r\00e\00a\00c\00h\00e\00d\00 \00e\00n\00d\00 \00o\00f\00 \00c\00o\00d\00e\00\00\00U\00n\00t\00e\00r\00m\00i\00n\00a\00t\00e\00d\00 \00s\00t\00r\00i\00n\00g\00 \00l\00i\00t\00e\00r\00a\00l\00\00\00i\00m\00p\00o\00r\00t\00\00\00.\00\00\00e\00x\00p\00o\00r\00t\00\00\00R\00e\00a\00c\00h\00e\00d\00 \00e\00n\00d\00 \00w\00i\00t\00h\00o\00u\00t\00 \00c\00l\00o\00s\00i\00n\00g\00 \00p\00a\00r\00e\00n\00t\00h\00e\00s\00i\00s\00\00\00m\00e\00t\00a\00\00\00i\00m\00p\00o\00r\00t\00.\00m\00e\00t\00a\00 \00i\00s\00 \00o\00n\00l\00y\00 \00i\00m\00p\00o\00r\00t\00 \00m\00e\00t\00a\00p\00r\00o\00p\00e\00r\00t\00y\00 \00s\00u\00p\00p\00o\00r\00t\00e\00d\00\00\00*\00\00\00d\00e\00f\00a\00u\00l\00t\00\00\00U\00n\00e\00x\00p\00e\00c\00t\00e\00d\00 \00t\00o\00k\00e\00n\00 \00a\00f\00t\00e\00r\00 \00d\00e\00f\00a\00u\00l\00t\00 \00i\00m\00p\00o\00r\00t\00\00\00U\00n\00c\00l\00o\00s\00e\00d\00 \00n\00a\00m\00e\00d\00 \00i\00m\00p\00o\00r\00t\00\00\00;\00\00\00)\00\00\00f\00i\00n\00a\00l\00l\00y\00\00\00i\00f\00\00\00f\00o\00r\00\00\00w\00h\00i\00l\00e\00\00\00U\00n\00t\00e\00r\00m\00i\00n\00a\00t\00e\00d\00 \00R\00e\00g\00u\00l\00a\00r\00 \00E\00x\00p\00r\00e\00s\00s\00i\00o\00n\00\00\00U\00n\00t\00e\00r\00m\00i\00n\00a\00t\00e\00d\00 \00C\00h\00a\00r\00a\00c\00t\00e\00r\00 \00C\00l\00a\00s\00s\00\00\00\00\00"))
