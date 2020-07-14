@@ -225,7 +225,7 @@ export default class Parser {
     #consumeLineComment = (): void => {
         this.#position += 2;
         while (!this.#atEnd()) {
-            if (isNewlineOrWhitespace(this.#peek())) {
+            if (isNewline(this.#peek())) {
                 this.#position += 1;
                 return;
             }
@@ -326,7 +326,7 @@ export default class Parser {
         this.#tokenize(EndWhen.closingParenthesis);
         this.#consumePunctuator();
         this.#consumeWhitespaceAndComments();
-        if (this.#peek() === "/" && isExpressionTerminator(lastToken)) {
+        if (this.#peek() === "/" && isParenKeyword(lastToken)) {
             this.#consumeRegularExpression();
         }
     };

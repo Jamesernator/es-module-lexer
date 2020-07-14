@@ -8,14 +8,13 @@ typedef struct {
     int32_t length;
 } String;
 
-/* 
+//* 
 extern void _consoleLog(int32_t start, int32_t length);
-extern void _consoleLogInt(int32_t i);
-
+extern void _consoleLogInt(int32_t n);
 void consoleLog(String message) {
     _consoleLog(message.start, message.length);
 }
-*/
+//*/
 
 extern void syntaxError(int32_t start, int32_t length);
 
@@ -245,6 +244,7 @@ TokenType consumeTemplateLiteralPart(ParserState* state) {
 
 void addToken(ParserState* state, TokenType type, int32_t start, int32_t end) {
     state->lastToken = (String){ state->code.start + start, end - start };
+    consoleLog(state->lastToken);
 }
 
 void consumeTemplateLiteral(ParserState* state) {
@@ -285,11 +285,19 @@ String consumeStringLiteral(ParserState* state, char16_t quote) {
     return state->lastToken;
 }
 
+static int parensNo = 0;
+
 void consumeParens(ParserState* state) {
     String lastToken = state->lastToken;
+    int p = parensNo;
+    parensNo++;
+    consoleLog(s(u"--openParens--"));
+    _consoleLogInt(p); 
     consumePunctuator(state);
     tokenize(state, CLOSING_PARENTHESIS);
     consumePunctuator(state);
+    consoleLog(s(u"--closeParens--"));
+    _consoleLogInt(p);
     consumeWhitespaceAndComments(state);
     if (peekChar(state) == '/' && isParenKeyword(lastToken)) {
         consumeRegularExpression(state);
@@ -478,7 +486,8 @@ String peekSequence(ParserState* state) {
 String consumeSequence(ParserState* state) {
     int32_t startPosition = state->position;
     while (state->position < state->code.length
-    && !isNewlineOrWhitespaceOrPunctuator(peekChar(state))) {
+    && !isNewlineOrWhitespaceOrPunctuator(peekChar(state))
+    && peekChar(state) != '\'' && peekChar(state) != '"') {
         state->position += 1;
     }
     addToken(state, SEQUENCE, startPosition, state->position);
@@ -611,16 +620,19 @@ void tokenize(ParserState* state, EndWhen endWhen) {
         && !stringEqual(state->lastToken, s(u"."))) {
             consumeImport(state);
         } else if (stringEqual(peekSequence(state), s(u"export"))) {
-            consumeExport(state);
+            consumeSequence(state);
+            // consumeExport(state);
         } else {
             consumeSequence(state);
         }
         
         consumeWhitespaceAndComments(state);
     }
-
-    if (endWhen != EOF) {
-        raiseSyntaxError(s(u"Reached end without closure"));
+    switch (endWhen) {
+        case EOF: return;
+        case CLOSING_PARENTHESIS:
+            raiseSyntaxError(s(u"Reached end without closing parenthesis"));
+        default: return;
     }
 }
 
