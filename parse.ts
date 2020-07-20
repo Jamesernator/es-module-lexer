@@ -59,12 +59,12 @@ export default async function parse(code: string): Promise<ParseResult> {
 
     let openImport: null | {
         startPosition: number,
-        imports: Record<string, string>,
+        imports: Array<[string, string]>,
     } = null;
 
     let openExport: null | {
         startPosition: number,
-        exports: Record<string, string>,
+        exports: Array<[string, string]>,
     } = null;
 
     const instance = await WebAssembly.instantiate(module, {
@@ -78,7 +78,7 @@ export default async function parse(code: string): Promise<ParseResult> {
                 }
                 openImport = {
                     startPosition,
-                    imports: Object.create(null) as Record<string, string>,
+                    imports: [],
                 };
             },
             emitImportName(
@@ -90,8 +90,10 @@ export default async function parse(code: string): Promise<ParseResult> {
                 if (!openImport) {
                     throw new Error("Emitted name without import");
                 }
-                openImport.imports[readString(importNameStart, importNameLength)]
-                    = readString(asNameStart, asNameLength);
+                openImport.imports.push([
+                    readString(importNameStart, importNameLength),
+                    readString(asNameStart, asNameLength),
+                ]);
             },
             finalizeImport(
                 endPosition: number,
@@ -105,7 +107,7 @@ export default async function parse(code: string): Promise<ParseResult> {
                     startPosition: openImport.startPosition,
                     endPosition,
                     specifier: readString(specifierStart, specifierLength),
-                    imports: openImport.imports,
+                    imports: Object.fromEntries(openImport.imports),
                 });
                 openImport = null;
             },
@@ -134,7 +136,7 @@ export default async function parse(code: string): Promise<ParseResult> {
                 }
                 openExport = {
                     startPosition,
-                    exports: Object.create(null) as Record<string, string>,
+                    exports: [],
                 };
             },
             emitExportName(
@@ -146,9 +148,10 @@ export default async function parse(code: string): Promise<ParseResult> {
                 if (!openExport) {
                     throw new Error("Emitted export name without opening");
                 }
-                openExport.exports[
-                    readString(exportNameStart, exportNameLength)
-                ] = readString(asNameStart, asNameLength);
+                openExport.exports.push([
+                    readString(exportNameStart, exportNameLength),
+                    readString(asNameStart, asNameLength),
+                ]);
             },
             finalizeExport(
                 endPosition: number,
@@ -160,7 +163,7 @@ export default async function parse(code: string): Promise<ParseResult> {
                     startPosition: openExport.startPosition,
                     endPosition,
                     specifier: null,
-                    exports: openExport.exports,
+                    exports: Object.fromEntries(openExport.exports),
                 });
                 openExport = null;
             },
@@ -176,7 +179,7 @@ export default async function parse(code: string): Promise<ParseResult> {
                     startPosition: openExport.startPosition,
                     endPosition,
                     specifier: readString(specifierStart, specifierLength),
-                    exports: openExport.exports,
+                    exports: Object.fromEntries(openExport.exports),
                 });
                 openExport = null;
             },
