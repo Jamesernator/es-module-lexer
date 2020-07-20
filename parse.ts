@@ -69,16 +69,13 @@ export default async function parse(code: string): Promise<ParseResult> {
 
     const instance = await WebAssembly.instantiate(module, {
         env: {
-            _consoleLog(start: number, length: number) {
-                console.log(readString(start, length));
-            },
-            _consoleLogInt(n: number) {
-                console.log(`>> ${ n }`);
-            },
             syntaxError(start: number, length: number) {
                 throw new SyntaxError(readString(start, length));
             },
             openImport(startPosition: number) {
+                if (openImport) {
+                    throw new Error("import statement already open");
+                }
                 openImport = {
                     startPosition,
                     imports: Object.create(null) as Record<string, string>,
@@ -132,14 +129,17 @@ export default async function parse(code: string): Promise<ParseResult> {
                 });
             },
             openExport(startPosition: number) {
+                if (openExport) {
+                    throw new Error("export statement already open");
+                }
                 openExport = {
                     startPosition,
                     exports: Object.create(null) as Record<string, string>,
                 };
             },
             emitExportName(
-                importNameStart: number,
-                importNameLength: number,
+                exportNameStart: number,
+                exportNameLength: number,
                 asNameStart: number,
                 asNameLength: number,
             ) {
@@ -147,10 +147,24 @@ export default async function parse(code: string): Promise<ParseResult> {
                     throw new Error("Emitted export name without opening");
                 }
                 openExport.exports[
-                    readString(importNameStart, importNameLength)
+                    readString(exportNameStart, exportNameLength)
                 ] = readString(asNameStart, asNameLength);
             },
             finalizeExport(
+                endPosition: number,
+            ) {
+                if (!openExport) {
+                    throw new Error("Emitted import without opening");
+                }
+                exports.push({
+                    startPosition: openExport.startPosition,
+                    endPosition,
+                    specifier: null,
+                    exports: openExport.exports,
+                });
+                openExport = null;
+            },
+            finalizeDelegatedExport(
                 endPosition: number,
                 specifierStart: number,
                 specifierLength: number,
@@ -161,8 +175,7 @@ export default async function parse(code: string): Promise<ParseResult> {
                 exports.push({
                     startPosition: openExport.startPosition,
                     endPosition,
-                    specifier:
-                        readString(specifierStart, specifierLength) || null,
+                    specifier: readString(specifierStart, specifierLength),
                     exports: openExport.exports,
                 });
                 openExport = null;
@@ -191,9 +204,9 @@ export default async function parse(code: string): Promise<ParseResult> {
 
     parse(initialPage*PAGE_SIZE, code.length);
     return {
-        imports: imports.sort((a, b) => b.startPosition - a.startPosition),
-        importMetas: importMetas.sort((a, b) => b.startPosition - a.startPosition),
-        dynamicImports: dynamicImports.sort((a, b) => b.startPosition - a.startPosition),
-        exports: exports.sort((a, b) => b.startPosition - a.startPosition),
+        imports,
+        importMetas,
+        dynamicImports,
+        exports,
     };
 }

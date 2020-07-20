@@ -8,7 +8,7 @@ typedef struct {
     int32_t length;
 } String;
 
-/* 
+//* 
 extern void _consoleLog(int32_t start, int32_t length);
 extern void _consoleLogInt(int32_t n);
 void consoleLog(String message) {
@@ -264,7 +264,8 @@ void consumeTemplateLiteral(ParserState* state) {
     } while (type != TEMPLATE_END);
 }
 
-String consumeStringLiteral(ParserState* state, char16_t quote) {
+String consumeStringLiteral(ParserState* state) {
+    char16_t quote = peekChar(state);
     int32_t startPosition = state->position;
     state->position += 1;
     
@@ -430,7 +431,7 @@ void consumeImport(ParserState* state) {
     // bare import
     } else if (isQuote(peekChar(state))) {
         openImport(startPosition);
-        String specifier = consumeStringLiteral(state, peekChar(state));
+        String specifier = consumeStringLiteral(state);
         _finalizeImport(state->position, specifier);
         return;
     }
@@ -460,7 +461,7 @@ void consumeImport(ParserState* state) {
     consumeWhitespaceAndComments(state);
     consumeSequence(state);
     consumeWhitespaceAndComments(state);
-    String specifier = consumeStringLiteral(state, peekChar(state));
+    String specifier = consumeStringLiteral(state);
     _finalizeImport(state->position, specifier);
 }
 
@@ -535,6 +536,9 @@ extern void emitExportName(
     int32_t asNameLength
 );
 extern void finalizeExport(
+    int32_t endPosition
+);
+extern void finalizeDelegatedExport(
     int32_t endPosition,
     int32_t specifierStart,
     int32_t specifierLength
@@ -547,12 +551,62 @@ void _emitExportName(String importName, String asName) {
     );
 }
 
-void _finalizeExport(int32_t endPosition, String specifier) {
-    finalizeExport(endPosition, (int32_t)specifier.start, specifier.length);
+void _finalizeDelegatedExport(int32_t endPosition, String specifier) {
+    finalizeDelegatedExport(endPosition, (int32_t)specifier.start, specifier.length);
 }
 
-void consumeExportFunctionDeclaration() {
+String consumeExportFunction(state) {
+    if (stringEqual(peekSequence(state), s(u"async"))) {
+        consumeSequence(state);
+        consumeWhitespaceAndComments(state);
+    }
+    consumeSequence(state);
+    consumeWhitespaceAndComments(state);
+    if (peekChar(state) == '*') {
+        consumePunctuator(state);
+        consumeWhitespaceAndComments(state);
+    }
+    if (isPunctuator(peekChar(state))) {
+        return s(u"");
+    }
+    return consumeSequence(state);
+}
 
+String consumeExportClass(state) {
+    consumeSequence(state);
+    consumeWhitespaceAndComments(state);
+    if (isPunctuator(peekChar(state))) {
+        return s(u"");
+    }
+    return consumeSequence(state);
+}
+
+void consumeNamedExports(ParserState* state) {
+    consumePunctuator(state);
+
+    while (state->position < state->code.length
+    && peekChar(state) != '}') {
+        consumeWhitespaceAndComments(state);
+        String exportedName = consumeSequence(state);
+        consumeWhitespaceAndComments(state);
+        if (!isPunctuator(peekChar(state))) {
+            consumeSequence(state);
+            consumeWhitespaceAndComments(state);
+            String exportedAsName = consumeSequence(state);
+            _emitExportName(exportedName, exportedAsName);
+        } else {
+            _emitExportName(exportedName, exportedName);
+        }
+
+        consumeWhitespaceAndComments(state);
+        if (peekChar(state) == ',') {
+            consumePunctuator(state);
+        }
+    }
+    if (state->position >= state->code.length) {
+        raiseSyntaxError(s(u"Unclosed named export"));
+    }
+    consumePunctuator(state);
 }
 
 void consumeExport(ParserState* state) {
@@ -573,11 +627,81 @@ void consumeExport(ParserState* state) {
         consumeWhitespaceAndComments(state);
         String exportedName = consumeSequence(state);
         _emitExportName(exportedName, exportedName);
-        _finalizeExport(startPosition + 6, s(u""));
+        finalizeExport(startPosition + 6);
         return;
-    } else if (stringEqual(peekSequence(state), s(u"async"))) {
-        consumeSequence(state);
+    } else if (stringEqual(peekSequence(state), s(u"async"))
+    || stringEqual(peekSequence(state), s(u"function"))) {
+        String exportedName = consumeExportFunction(state);
+        _emitExportName(exportedName, exportedName);
+        finalizeExport(startPosition + 6);
+        return;
+    } else if (stringEqual(peekSequence(state), s(u"class"))) {
+        String exportedName = consumeExportClass(state);
+        _emitExportName(exportedName, exportedName);
+        finalizeExport(startPosition + 6);
+    } else if (peekChar(state) == '{') {
+        consumeNamedExports(state);
+        int endPosition = state->position;
         consumeWhitespaceAndComments(state);
+        if (stringEqual(peekSequence(state), s(u"from"))) {
+            consumeSequence(state);
+            consumeWhitespaceAndComments(state);
+            String specifier = consumeStringLiteral(state);
+            _finalizeDelegatedExport(state->position, specifier);
+        } else {
+            finalizeExport(endPosition);
+        }
+    } else if (peekChar(state) == '*') {
+        consumePunctuator(state);
+        consumeWhitespaceAndComments(state);
+        // export * from "mod"
+        if (stringEqual(peekSequence(state), s(u"from"))) {
+            consumeSequence(state); // from
+            consumeWhitespaceAndComments(state);
+            String specifier = consumeStringLiteral(state);
+            _emitExportName(s(u"*"), s(u"*"));
+            _finalizeDelegatedExport(state->position, specifier);
+        // export * as ID from "mod"
+        } else {
+            consumeSequence(state); // as
+            consumeWhitespaceAndComments(state);
+            String exportAsName = consumeSequence(state);
+            consumeWhitespaceAndComments(state);
+            consumeSequence(state); // from
+            consumeWhitespaceAndComments(state);
+            String specifier = consumeStringLiteral(state);
+            _emitExportName(s(u"*"), exportAsName);
+            _finalizeDelegatedExport(state->position, specifier);
+        }
+    } else if (stringEqual(peekSequence(state), s(u"default"))) {
+        consumeSequence(state); // default
+        int endPosition = state->position;
+        consumeWhitespaceAndComments(state);
+        if (stringEqual(peekSequence(state), s(u"async"))
+        || stringEqual(peekSequence(state), s(u"function"))) {
+            String exportName = consumeExportFunction(state);
+            if (stringEqual(exportName, s(u""))) {
+                _emitExportName(s(u"default"), s(u"default"));
+                finalizeExport(endPosition);
+            } else {
+                _emitExportName(exportName, s(u"default"));
+                finalizeExport(endPosition);
+            }
+        } else if (stringEqual(peekSequence(state), s(u"class"))) {
+            String exportName = consumeExportClass(state);
+            if (stringEqual(exportName, s(u""))) {
+                _emitExportName(s(u"default"), s(u"default"));
+                finalizeExport(endPosition);
+            } else {
+                _emitExportName(exportName, s(u"default"));
+                finalizeExport(endPosition);
+            }
+        } else {
+            _emitExportName(s(u"default"), s(u"default"));
+            finalizeExport(startPosition + 6);
+        }
+    } else {
+        raiseSyntaxError(s(u"Invalid export"));
     }
 }
 
@@ -604,7 +728,7 @@ void tokenize(ParserState* state, EndWhen endWhen) {
         } else if (peekChar(state) == '`') {
             consumeTemplateLiteral(state);
         } else if (isQuote(peekChar(state))) {
-            consumeStringLiteral(state, peekChar(state));
+            consumeStringLiteral(state);
         } else if (peekChar(state) == '(') {
             consumeParens(state);
         } else if (peekChar(state) == '{') {
@@ -615,8 +739,7 @@ void tokenize(ParserState* state, EndWhen endWhen) {
         && !stringEqual(state->lastToken, s(u"."))) {
             consumeImport(state);
         } else if (stringEqual(peekSequence(state), s(u"export"))) {
-            consumeSequence(state);
-            // consumeExport(state);
+            consumeExport(state);
         } else {
             consumeSequence(state);
         }
