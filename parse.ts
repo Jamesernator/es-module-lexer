@@ -204,8 +204,10 @@ export default async function parse(code: string): Promise<ParseResult> {
     for (let i = 0; i < code.length; i += 1) {
         characterArray[i] = code[i].charCodeAt(0);
     }
-    
+
+    console.time('parse');    
     parse(initialPage*PAGE_SIZE, code.length);
+    console.timeEnd('parse');
 
     return {
         imports,
