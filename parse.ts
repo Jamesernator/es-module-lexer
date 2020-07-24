@@ -35,11 +35,11 @@ type ParseResult = {
 
 const PAGE_SIZE = 2**16;
 
-export default async function parse(code: string): Promise<ParseResult> {
-    const module = await WebAssembly.compile(
-        await fsp.readFile(new URL("./lexer.wasm", import.meta.url)),
-    );
+const parseModule = await WebAssembly.compile(
+    await fsp.readFile(new URL("./lexer.wasm", import.meta.url)),
+);
 
+export default async function parse(code: string): Promise<ParseResult> {
     const imports: Array<Import> = [];
     const importMetas: Array<ImportMeta> = [];
     const dynamicImports: Array<DynamicImport> = [];
@@ -67,7 +67,7 @@ export default async function parse(code: string): Promise<ParseResult> {
         exports: Array<[string, string]>,
     } = null;
 
-    const instance = await WebAssembly.instantiate(module, {
+    const instance = await WebAssembly.instantiate(parseModule, {
         env: {
             syntaxError(start: number, length: number) {
                 throw new SyntaxError(readString(start, length));
@@ -204,8 +204,9 @@ export default async function parse(code: string): Promise<ParseResult> {
     for (let i = 0; i < code.length; i += 1) {
         characterArray[i] = code[i].charCodeAt(0);
     }
-
+    
     parse(initialPage*PAGE_SIZE, code.length);
+
     return {
         imports,
         importMetas,
