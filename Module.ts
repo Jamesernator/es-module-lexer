@@ -43,8 +43,10 @@ async function createSyntheticModule(
 
     const nameGenerator = new NameGenerator(sourceText);
 
+    const importCapture = nameGenerator.createName('importCapture');
+
     return new GeneratorFunction(`
-        const $IMPORT_CAPTURE = {
+        const $IMPORT_CAPTURE  = {
             __proto__: null,
             $IMPORTS
         };
