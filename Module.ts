@@ -21,39 +21,18 @@ type ModuleState =
 // eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/naming-convention
 const GeneratorFunction = function* () {}.constructor as new (...strings: Array<string>) => Generator<any, any, any>;
 
-
-async function createSyntheticModule(
-    sourceText: string,
-): Promise<Generator<any, any, any>> {
-    const {
-        imports,
-    } = await parse(sourceText);
-
-    const importedNames: Array<{
-        name: string,
-        asName: string,
-        specifier: string,
-    }> = [];
-
-    for (const _import of imports) {
-        for (const [name, asName] of Object.entries(_import.imports)) {
-            importedNames.push({ name, asName, specifier: _import.specifier });
-        }
-    }
-
-    const nameGenerator = new NameGenerator(sourceText);
-
-    const importCapture = nameGenerator.createName('importCapture');
-
-    return new GeneratorFunction(`
-        const $IMPORT_CAPTURE  = {
-            __proto__: null,
-            $IMPORTS
-        };
-
-        with ($IMPORT_CAPTURE) {
-            
-            $BODY
+function createGeneratorEvaluator(transformedText: string): (scope: Generator<any, any, any> {
+    // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval
+    return new Function(`
+        // arguments[0] is the import scope
+        with (arguments[0]) {
+            return function*() {
+                "use strict";
+                // this allows capturing of hoisted names
+                // in the transformedText
+                yield s => eval(s);
+                ${ transformedText }
+            }()
         }
     `);
 }
@@ -75,6 +54,13 @@ export default class SourceTextModule {
         if (this.#state.type !== "unlinked") {
             return;
         }
-        const syntheticModule = await createSyntheticModule(this.#state.sourceText);
+        const {
+            imports,
+            importMetas,
+            dynamicImports,
+            exports,
+        } = await parse(this.#state.source);
+        const moduleNamespace = Object.create(null);
+        
     }
 }
