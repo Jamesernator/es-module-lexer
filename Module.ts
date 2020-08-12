@@ -18,10 +18,8 @@ type ModuleState =
     | EvaluatedState
     | ErroredState;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/naming-convention
-const GeneratorFunction = function* () {}.constructor as new (...strings: Array<string>) => Generator<any, any, any>;
 
-function createGeneratorEvaluator(transformedText: string): (scope: Generator<any, any, any> {
+function createGeneratorEvaluator(transformedText: string): (scope: any) => Generator<any, any, any> {
     // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval
     return new Function(`
         // arguments[0] is the import scope
@@ -34,7 +32,7 @@ function createGeneratorEvaluator(transformedText: string): (scope: Generator<an
                 ${ transformedText }
             }()
         }
-    `);
+    `) as (scope: any) => Generator<any, any, any>;
 }
 
 export default class SourceTextModule {
@@ -61,6 +59,7 @@ export default class SourceTextModule {
             exports,
         } = await parse(this.#state.source);
         const moduleNamespace = Object.create(null);
+        const importScope = Object.create(null);
         
     }
 }

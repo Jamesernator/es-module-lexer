@@ -7,4 +7,3 @@ const ast = await parse(
 );
 
 console.log(util.inspect(ast, { depth: Infinity }));
-

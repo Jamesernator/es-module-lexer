@@ -35,27 +35,23 @@ type ParseResult = {
 
 const PAGE_SIZE = 2**16;
 
-const parseModule = await WebAssembly.compile(
-    await fsp.readFile(new URL("./lexer.wasm", import.meta.url)),
-);
+const wasmFile = new URL("./lexer.wasm", import.meta.url);
+
+let parserModule: WebAssembly.Module;
+
+if (typeof process === "object") {
+    parserModule = await WebAssembly.compile(
+        await fsp.readFile(wasmFile),
+    );
+} else {
+    parserModule = await WebAssembly.compileStreaming(fetch(wasmFile.href));
+}
 
 export default async function parse(code: string): Promise<ParseResult> {
     const imports: Array<Import> = [];
     const importMetas: Array<ImportMeta> = [];
     const dynamicImports: Array<DynamicImport> = [];
     const exports: Array<Export> = [];
-
-    const readString = (start: number, length: number) => {
-        const characters = new Uint16Array(
-            // eslint-disable-next-line @typescript-eslint/no-use-before-define
-            (instance.exports.memory as WebAssembly.Memory).buffer,
-            start,
-            length,
-        );
-        return [...characters]
-            .map((ch) => String.fromCharCode(ch))
-            .join("");
-    };
 
     let openImport: null | {
         startPosition: number,
@@ -67,7 +63,7 @@ export default async function parse(code: string): Promise<ParseResult> {
         exports: Array<[string, string]>,
     } = null;
 
-    const instance = await WebAssembly.instantiate(parseModule, {
+    const instance = await WebAssembly.instantiate(parserModule, {
         env: {
             syntaxError(start: number, length: number) {
                 throw new SyntaxError(readString(start, length));
@@ -186,6 +182,20 @@ export default async function parse(code: string): Promise<ParseResult> {
         },
     });
 
+
+    function readString(start: number, length: number) {
+        const characters = new Uint16Array(
+            // eslint-disable-next-line @typescript-eslint/no-use-before-define
+            (instance.exports.memory as WebAssembly.Memory).buffer,
+            start,
+            length,
+        );
+        return [...characters]
+            .map((ch) => String.fromCharCode(ch))
+            .join("");
+    }
+
+
     const { memory, parse } = instance.exports as {
         memory: WebAssembly.Memory,
         parse: (start: number, length: number) => void,
@@ -205,9 +215,7 @@ export default async function parse(code: string): Promise<ParseResult> {
         characterArray[i] = code[i].charCodeAt(0);
     }
 
-    console.time('parse');    
     parse(initialPage*PAGE_SIZE, code.length);
-    console.timeEnd('parse');
 
     return {
         imports,
