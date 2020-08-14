@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/Jamesernator/es-module-lexer#readme",
   "devDependencies": {
-    "@jsxt/eslint-config-typescript": "^4.1.2",
+    "@jsxt/eslint-config-typescript": "^4.1.3",
     "@typescript-eslint/eslint-plugin": "^3.9.0",
     "@typescript-eslint/parser": "^3.9.0",
     "es-module-lexer": "^0.3.18",

@@ -9,9 +9,7 @@ export default abstract class ModuleRecord {
         resolveSet: ResolveSet
     ): null | "ambiguous" | { module: ModuleRecord, bindingName: string };
 
-    abstract getExportedNames(exportStarSet: Set<any>): Array<string>;
-
+    abstract getExportedNames(exportStarSet?: Set<ModuleRecord>): Array<string>;
     abstract link(): Promise<void>;
-
     abstract evaluate(): Promise<void>;
 }
