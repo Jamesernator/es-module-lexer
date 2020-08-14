@@ -23,9 +23,9 @@
     "@typescript-eslint/eslint-plugin": "^3.9.0",
     "@typescript-eslint/parser": "^3.9.0",
     "es-module-lexer": "^0.3.18",
-    "eslint": "^7.4.0",
+    "eslint": "^7.6.0",
     "eslint-plugin-import": "^2.22.0",
-    "typescript": "^3.9.6"
+    "typescript": "^3.9.7"
   },
   "dependencies": {
     "@assemblyscript/loader": "^0.9.4",

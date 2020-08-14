@@ -1,8 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import babel from '@babel/core';
 import urlUtils from 'url';
-import babelPluginTransformTypescript from '@babel/plugin-transform-typescript';
+import ts from 'typescript';
 
 function isURL(string) {
     try {
@@ -12,38 +11,13 @@ function isURL(string) {
         return false;
     }
 }
-const removePrivateTypes = (babel) => {
-    return {
-        visitor: {
-            ClassPrivateProperty(context) {
-                context.get('typeAnnotation')?.remove();
-            },
-        },
-    };
-}
 
-const BABEL_OPTS = {
-    plugins: [
-        babelPluginTransformTypescript,
-        removePrivateTypes,
-    ],
-    parserOpts: {
-        plugins: [
-            'asyncGenerators',
-            'bigInt',
-            'classProperties',
-            'classPrivateProperties',
-            'importMeta',
-            'nullishCoalescingOperator',
-            'numericSeparator',
-            'objectRestSpread',
-            'optionalCatchBinding',
-            'optionalChaining',
-            'topLevelAwait',
-            'typescript',
-        ],
+const compilerOptions = {
+    compilerOptions: {
+        target: 'esnext',
+        module: 'esnext',
+        isolatedModules: true,
     },
-    sourceMaps: 'inline',
 };
 
 export async function getSource(urlString, context, getSourceDefault) {
@@ -52,11 +26,10 @@ export async function getSource(urlString, context, getSourceDefault) {
         if (url.pathname.endsWith('.js') && !fs.existsSync(url)) {
             url.pathname = url.pathname.replace(/\.js$/u, '.ts');
             const contents = await fs.promises.readFile(url, 'utf8');
-            const { code: source } = await babel.transformAsync(contents, {
-                ...BABEL_OPTS,
-                sourceFileName: path.basename(urlUtils.fileURLToPath(url)),
-            })
-            return { source };
+            return {
+                source: ts.transpileModule(contents, compilerOptions)
+                    .outputText,
+            };
         }
     }
     return getSourceDefault(urlString, context, getSourceDefault);

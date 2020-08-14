@@ -1,32 +1,32 @@
 import fsp from "fs/promises";
 
-type Import = {
+export type Import = {
     startPosition: number,
     endPosition: number,
     specifier: string,
     imports: Record<string, string>,
 };
 
-type ImportMeta = {
+export type ImportMeta = {
     startPosition: number,
     endPosition: number,
 };
 
-type DynamicImport = {
+export type DynamicImport = {
     startPosition: number,
     endPosition: number,
     contentStartPosition: number,
     contentEndPosition: number,
 };
 
-type Export = {
+export type Export = {
     startPosition: number,
     endPosition: number,
     specifier: string | null,
     exports: Record<string, string>,
 };
 
-type ParseResult = {
+export type ParseResult = {
     imports: Array<Import>,
     exports: Array<Export>,
     importMetas: Array<ImportMeta>,
