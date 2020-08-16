@@ -8,11 +8,9 @@ export default class NameGenerator {
     }
 
     createName(prefix: string): string {
-        let currentN = this.#names.get(prefix) ?? 0;
-        while (this.#string.includes(`${ prefix }$${ currentN }`)) {
-            currentN += 1;
-        }
-        this.#names.set(prefix, currentN);
-        return `${ prefix }$${ currentN }`;
+        const currentN = this.#names.get(prefix) ?? 0;
+        const name = `${ prefix }$$${ currentN }`;
+        this.#names.set(prefix, currentN + 1);
+        return name;
     }
 }
