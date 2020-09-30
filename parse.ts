@@ -102,7 +102,10 @@ export default async function parse(code: string): Promise<ParseResult> {
                 imports.push({
                     startPosition: openImport.startPosition,
                     endPosition,
-                    specifier: readString(specifierStart, specifierLength),
+                    // eslint-disable-next-line no-eval
+                    specifier: eval(`${
+                        readString(specifierStart, specifierLength)
+                    }`),
                     imports: Object.fromEntries(openImport.imports),
                 });
                 openImport = null;
@@ -174,7 +177,10 @@ export default async function parse(code: string): Promise<ParseResult> {
                 exports.push({
                     startPosition: openExport.startPosition,
                     endPosition,
-                    specifier: readString(specifierStart, specifierLength),
+                    // eslint-disable-next-line no-eval
+                    specifier: eval(`${
+                        readString(specifierStart, specifierLength)
+                    }`),
                     exports: Object.fromEntries(openExport.exports),
                 });
                 openExport = null;

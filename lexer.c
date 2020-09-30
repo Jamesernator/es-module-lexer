@@ -698,7 +698,7 @@ void consumeExport(ParserState* state) {
             }
         } else {
             _emitExportName(s(u"default"), s(u"default"));
-            finalizeExport(startPosition + 6);
+            finalizeExport(state->position);
         }
     } else {
         raiseSyntaxError(s(u"Invalid export"));

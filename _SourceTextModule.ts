@@ -1,4 +1,3 @@
-import ModuleRecord from "./ModuleRecord.js";
 import NameGenerator from "./NameGenerator.js";
 import parse, { ParseResult } from "./parse.js";
 
@@ -11,7 +10,7 @@ const GeneratorFunction = function* () { }.constructor as GeneratorFunctionConst
 
 function createGenerator(sourceText: string, parseResult: ParseResult) {
     const nameGenerator = new NameGenerator(sourceText);
-    const importNames = [...new Set(
+    const importedSpecifiers = [...new Set(
         parseResult.imports.map((i) => i.specifier),
     )];
     const defaultExportName = nameGenerator.createName("default");
@@ -26,29 +25,52 @@ function createGenerator(sourceText: string, parseResult: ParseResult) {
     });
     return new GeneratorFunction(`
         with (arguments[0]) {
-            yield [${ importNames.join( ",") }];
             yield {
-                imports: [${ importNames.join(",") }],
-                localNamespace: ${ getters.join(",") },
+                imports: [${ importedSpecifiers.join(",") }],
+                localNamespace: {
+                    ${ getters.join(",") }
+                },
             };
         }
     `);
 }
 
-export default class SourceTextModule extends ModuleRecord {
+type Linker
+    = (specifier: string, module: SourceTextModule)
+    => SourceTextModule | Promise<SourceTextModule>;
+
+export default class SourceTextModule {
     static async fromSource(source: string): Promise<SourceTextModule> {
         const parseResult = await parse(source);
         return new SourceTextModule(source, parseResult);
     }
 
+    #dependencySpecifiers: Array<string>;
     #source: string;
     #parseResult: ParseResult;
-    #importScope: any = Object.create(null);
+    #importScope: object;
+    #localNamespace: object;
 
     private constructor(source: string, parseResult: ParseResult) {
-        const g = createGenerator(source, parseResult)({});
-        super(g.next().value as Array<string>);
+        const importScope = Object.create(null);
+        const gen = createGenerator(source, parseResult)(importScope);
+        const { imports, namespace } = gen.next().value;
+        this.#dependencySpecifiers = imports;
+        this.#importScope = importScope;
         this.#source = source;
         this.#parseResult = parseResult;
+        this.#localNamespace = namespace;
+    }
+
+    get dependencySpecifiers(): Array<string> {
+        return this.#dependencySpecifiers;
+    }
+
+    async link(linker: Linker): Promise<void> {
+        const namespace = Object.create(null);
+        Object.defineProperties(
+            namespace,
+            Object.getOwnPropertyDescriptors(this.#localNamespace),
+        );
     }
 }

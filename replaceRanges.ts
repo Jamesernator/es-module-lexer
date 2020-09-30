@@ -1,5 +1,5 @@
 
-type RangeReplacement = {
+export type RangeReplacement = {
     start: number,
     end: number,
     replacement: string,

@@ -12,7 +12,7 @@ export default abstract class ModuleRecord {
         return this.#requestedModules;
     }
 
-    abstract declare namespace: undefined | object;
+    abstract declare namespace: object;
     abstract link(): Promise<void>;
     abstract evaluate(): Promise<void>;
 }
