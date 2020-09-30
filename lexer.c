@@ -696,6 +696,7 @@ void consumeExport(ParserState* state) {
                 _emitExportName(exportName, s(u"default"));
                 finalizeExport(endPosition);
             }
+        // export default <expression>
         } else {
             _emitExportName(s(u"default"), s(u"default"));
             finalizeExport(state->position);
