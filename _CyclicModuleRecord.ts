@@ -1,4 +1,4 @@
-import ModuleRecord from "./ModuleRecord.js";
+import Module from "./Module.js";
 
 type EvaluationError = { evaluationError: any };
 
@@ -9,7 +9,7 @@ type CyclicModuleState =
     | "evaluating"
     | "evaluated";
 
-type ResolveModule = (specifier: string, module: ModuleRecord) => ModuleRecord | Promise<ModuleRecord>;
+type ResolveModule = (specifier: string, module: Module) => Module | Promise<Module>;
 
 type CyclicModuleRecordOptions = {
     requiredModules: Array<string>,
@@ -19,14 +19,14 @@ type CyclicModuleRecordOptions = {
     executeModule: () => void,
 };
 
-export default abstract class CyclicModuleRecord extends ModuleRecord {
+export default abstract class CyclicModuleRecord extends Module {
     #state: CyclicModuleState = "unlinked";
     #evaluationError: null | EvaluationError = null;
     #resolveModule: ResolveModule;
     #requiredModules: Array<string>;
     #initializeEnvironment: () => void;
     #executeModule: () => void;
-    #linkedModules = new Map<string, ModuleRecord>();
+    #linkedModules = new Map<string, Module>();
     #exportedNames: Array<string>;
 
     constructor(options: CyclicModuleRecordOptions) {
@@ -55,11 +55,11 @@ export default abstract class CyclicModuleRecord extends ModuleRecord {
         this.#state = "linked";
     }
 
-    resolveNow(specifier: string): ModuleRecord | undefined {
+    resolveNow(specifier: string): Module | undefined {
         return this.#linkedModules.get(specifier);
     }
 
-    async resolve(specifier: string): Promise<ModuleRecord | undefined> {
+    async resolve(specifier: string): Promise<Module | undefined> {
         return await this.#resolveModule(specifier, this);
     }
 

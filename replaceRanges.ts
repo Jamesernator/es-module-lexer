@@ -24,7 +24,6 @@ export default function replaceRanges(
         last = { start, end };
     }
     parts.push(string);
-    console.log(parts);
     parts.reverse();
     return parts.join("");
 }

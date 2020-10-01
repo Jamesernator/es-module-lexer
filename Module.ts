@@ -1,65 +1,87 @@
-import NameGenerator from "./NameGenerator.js";
-import parse from "./parse.js";
 
-type Linker = (specifier: string, parent: SourceTextModule) => SourceTextModule;
+export type GetExportedNames = (exportStarSet: Set<Module>) => Array<string>;
 
-type UnlinkedState = { type: "unlinked", sourceText: string };
-type LinkingState = { type: "linking" };
-type LinkedState = { type: "linked" };
-type EvaluatingState = { type: "evaluating" };
-type EvaluatedState = { type: "evaluated" };
-type ErroredState = { type: "errored" };
+export const AMBIGUOUS = Symbol("ambiguous");
+export const NAMESPACE = Symbol("namespace");
 
-type ModuleState =
-    | UnlinkedState
-    | LinkingState
-    | LinkedState
-    | EvaluatingState
-    | EvaluatedState
-    | ErroredState;
+type ResolvedBinding = () => any;
 
+export type ResolvedExport = null | typeof AMBIGUOUS | ResolvedBinding;
 
-function createGeneratorEvaluator(transformedText: string): (scope: any) => Generator<any, any, any> {
-    // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval
-    return new Function(`
-        // arguments[0] is the import scope
-        with (arguments[0]) {
-            return function*() {
-                "use strict";
-                // this allows capturing of hoisted names
-                // in the transformedText
-                yield s => eval(s);
-                ${ transformedText }
-            }()
+export type ResolveSet = Array<{ module: Module, exportName: string }>;
+
+export type ResolveExport
+    = (
+        exportName: string,
+        resolveSet: ResolveSet,
+    ) => ResolvedExport;
+
+export type ModuleOptions = {
+    link: () => void | Promise<void>,
+    evaluate: () => void,
+    getExportedNames: GetExportedNames,
+    resolveExport: ResolveExport,
+};
+
+export default abstract class Module {
+    readonly #link: () => void | Promise<void>;
+    readonly #evaluate: () => void;
+    readonly #getExportedNames: GetExportedNames;
+    readonly #resolveExport: ResolveExport;
+    readonly #namespace?: Record<string, any> = undefined;
+
+    constructor({
+        link,
+        evaluate,
+        getExportedNames,
+        resolveExport,
+    }: ModuleOptions) {
+        if (typeof link !== "function") {
+            throw new TypeError("link must be a function");
         }
-    `) as (scope: any) => Generator<any, any, any>;
-}
-
-export default class SourceTextModule {
-    #url: string;
-    #state: ModuleState;
-
-    constructor(sourceText: string, url: string) {
-        this.#state = { type: "unlinked", sourceText };
-        this.#url = url;
+        if (typeof evaluate !== "function") {
+            throw new TypeError("evaluate must be a function");
+        }
+        if (typeof getExportedNames !== "function") {
+            throw new TypeError("getExportedNames must be a function");
+        }
+        if (typeof resolveExport !== "function") {
+            throw new TypeError("resolveExport must be a function");
+        }
+        this.#link = link;
+        this.#evaluate = evaluate;
+        this.#getExportedNames = getExportedNames;
+        this.#resolveExport = resolveExport;
     }
 
-    get status(): ModuleState["type"] {
-        return this.#state.type;
+    #getModuleNamespace = (): any => {
+        if (this.#namespace) {
+            return this.#namespace;
+        }
+        const namespace = Object.create(null);
+        namespace[Symbol.toStringTag] = "Module";
+    };
+
+    get namespace(): any {
+        return this.#getModuleNamespace();
     }
 
-    async link(linker: Linker): Promise<void> {
-        if (this.#state.type !== "unlinked") {
-            return;
-        }
-        const {
-            imports,
-            importMetas,
-            dynamicImports,
-            exports,
-        } = await parse(this.#state.source);
-        const moduleNamespace = Object.create(null);
-        const importScope = Object.create(null);
-        
+    getExportedNames(exportStarSet: Set<Module>=new Set()): Array<string> {
+        return this.#getExportedNames(exportStarSet);
+    }
+
+    resolveExport(
+        exportName: string,
+        resolveSet: ResolveSet=[],
+    ): ResolvedExport {
+        return this.#resolveExport(exportName, resolveSet);
+    }
+
+    async link(): Promise<void> {
+        await this.#link();
+    }
+
+    async evaluate(): Promise<void> {
+        this.#evaluate();
     }
 }
