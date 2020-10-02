@@ -5,7 +5,6 @@ import "importMod$4";
 import import$7, { import$8, import$9 as import$10 } from "importMod$5";
 
 const ref = new URL('./foo.baz', import.meta.url);
-await import('bizz');
 
 export const export$1 = 12;
 export async function export$2() {}

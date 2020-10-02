@@ -192,13 +192,13 @@ export default class CyclicModule extends Module {
         }
     };
 
-    #innerModuleEvaluation = async (
+    #innerModuleEvaluation = (
         module: Module,
         stack: Array<CyclicModule>,
         index: number,
-    ): Promise<number> => {
+    ): number => {
         if (!CyclicModule.isCyclicModule(module)) {
-            await module.evaluate();
+            module.evaluate();
             return index;
         }
         if (module.#status.name === "evaluated") {
@@ -219,7 +219,7 @@ export default class CyclicModule extends Module {
             if (!requiredModule) {
                 throw new Error("linked module is missing");
             }
-            index = await this.#innerModuleEvaluation(
+            index = this.#innerModuleEvaluation(
                 requiredModule,
                 stack,
                 index,
@@ -249,14 +249,14 @@ export default class CyclicModule extends Module {
         return index;
     };
 
-    #evaluate = async (): Promise<void> => {
+    #evaluate = (): void => {
         if (this.#status.name !== "linked"
         && this.#status.name !== "evaluated") {
             throw new Error("module must be in state linked or evaluated before calling evaluate");
         }
         const stack: Array<CyclicModule> = [];
         try {
-            await this.#innerModuleEvaluation(this, stack, 0);
+            this.#innerModuleEvaluation(this, stack, 0);
         } catch (error) {
             for (const module of stack) {
                 module.#status = { name: "evaluated", result: { error } };

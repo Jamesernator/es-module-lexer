@@ -674,7 +674,7 @@ void consumeExport(ParserState* state) {
             _finalizeDelegatedExport(state->position, specifier);
         }
     } else if (stringEqual(peekSequence(state), s(u"default"))) {
-        consumeSequence(state); // default
+        String seq = consumeSequence(state); // default
         int endPosition = state->position;
         consumeWhitespaceAndComments(state);
         if (stringEqual(peekSequence(state), s(u"async"))
@@ -699,7 +699,7 @@ void consumeExport(ParserState* state) {
         // export default <expression>
         } else {
             _emitExportName(s(u"default"), s(u"default"));
-            finalizeExport(state->position);
+            finalizeExport(endPosition);
         }
     } else {
         raiseSyntaxError(s(u"Invalid export"));

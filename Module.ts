@@ -4,7 +4,11 @@ export type GetExportedNames = (exportStarSet: Set<Module>) => Array<string>;
 export const AMBIGUOUS = Symbol("ambiguous");
 export const NAMESPACE = Symbol("namespace");
 
-type ResolvedBinding = () => any;
+type ResolvedBinding = {
+    module: Module,
+    bindingName: string | typeof NAMESPACE,
+    getBinding: () => any,
+};
 
 export type ResolvedExport = null | typeof AMBIGUOUS | ResolvedBinding;
 
@@ -28,7 +32,8 @@ export default abstract class Module {
     readonly #evaluate: () => void;
     readonly #getExportedNames: GetExportedNames;
     readonly #resolveExport: ResolveExport;
-    readonly #namespace?: Record<string, any> = undefined;
+    #namespace?: Record<string, any> = undefined;
+    #isEvaluated = false;
 
     constructor({
         link,
@@ -60,10 +65,26 @@ export default abstract class Module {
         }
         const namespace = Object.create(null);
         namespace[Symbol.toStringTag] = "Module";
+        for (const exportName of this.#getExportedNames(new Set())) {
+            const resolvedBinding = this.#resolveExport(exportName, []);
+            if (resolvedBinding !== null && resolvedBinding !== AMBIGUOUS) {
+                Object.defineProperty(namespace, exportName, {
+                    enumerable: true,
+                    get: resolvedBinding.getBinding,
+                });
+            }
+        }
+        this.#namespace = namespace;
+        Object.freeze(namespace);
+        return namespace;
     };
 
     get namespace(): any {
         return this.#getModuleNamespace();
+    }
+
+    get isEvaluated(): boolean {
+        return this.#isEvaluated;
     }
 
     getExportedNames(exportStarSet: Set<Module>=new Set()): Array<string> {
@@ -81,7 +102,8 @@ export default abstract class Module {
         await this.#link();
     }
 
-    async evaluate(): Promise<void> {
+    evaluate(): void {
         this.#evaluate();
+        this.#isEvaluated = true;
     }
 }
