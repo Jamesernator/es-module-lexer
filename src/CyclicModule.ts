@@ -94,6 +94,15 @@ export default class CyclicModule extends Module {
         if (this.#requestedModules.some((i) => typeof i !== "string")) {
             throw new TypeError(`requestedModules contains a non-string value`);
         }
+        if (typeof initializeEnvironment !== "function") {
+            throw new TypeError("initializeEnvironment must be a function");
+        }
+        if (typeof executeModule !== "function") {
+            throw new TypeError("executeModule must be a function");
+        }
+        if (typeof resolveModule !== "function") {
+            throw new TypeError("resolveModule must be a function");
+        }
         this.#initializeEnvironment = initializeEnvironment;
         this.#executeModule = executeModule;
         this.#resolveModule = resolveModule;

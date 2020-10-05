@@ -5,7 +5,7 @@ lexer.wat: lexer.wasm
 	./wabt/bin/wasm2wat ./dist/lexer.wasm -o ./dist/lexer.wat
 
 lexer.wasm: ./src/lexer.c
-	mkdir dist/
+	mkdir -p dist/
 	clang \
 		--target=wasm32 \
 		-O3 \
