@@ -16,5 +16,10 @@
     "eslint": "^7.6.0",
     "eslint-plugin-import": "^2.22.0",
     "typescript": "^3.9.7"
+  },
+  "exports": {
+    "./Module": "./dist/Module.js",
+    "./CyclicModule": "./dist/CyclicModule.js",
+    "./SourceTextModule": "./dist/SourceTextModule.js"
   }
 }

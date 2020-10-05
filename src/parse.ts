@@ -1,4 +1,3 @@
-import fsp from "fs/promises";
 
 export type Import = {
     startPosition: number,
@@ -37,15 +36,16 @@ const PAGE_SIZE = 2**16;
 
 const wasmFile = new URL("./lexer.wasm", import.meta.url);
 
-let parserModule: WebAssembly.Module;
-
-if (typeof process === "object") {
-    parserModule = await WebAssembly.compile(
-        await fsp.readFile(wasmFile),
-    );
-} else {
-    parserModule = await WebAssembly.compileStreaming(fetch(wasmFile.href));
+async function getWasmModule(): Promise<WebAssembly.Module> {
+    if (typeof process === "object") {
+        const fsp = await import("fs/promises");
+        return await WebAssembly.compile(await fsp.readFile(wasmFile));
+    }
+    return await WebAssembly.compileStreaming(fetch(wasmFile.href));
 }
+
+
+const parserModulePromise = getWasmModule();
 
 export default async function parse(code: string): Promise<ParseResult> {
     const imports: Array<Import> = [];
@@ -63,6 +63,7 @@ export default async function parse(code: string): Promise<ParseResult> {
         exports: Array<[string, string]>,
     } = null;
 
+    const parserModule = await parserModulePromise;
     const instance = await WebAssembly.instantiate(parserModule, {
         env: {
             syntaxError(start: number, length: number) {
