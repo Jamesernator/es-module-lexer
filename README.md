@@ -9,10 +9,23 @@ One can create instances of `Module` by passing appropriate implementations of `
 
 The following shows an example of `Module` being used to implement `SyntheticModule`:
 
-```js
+```ts
 import Module from 'TEMPNAME-module-shim/Module';
 
 export default class SyntheticModule {
-    
+    #exportNames;
+    #namespace = Object.create(null);
+
+    constructor(exportNames, evaluateCallback=() => {}) {
+        this.#exportNames = [...exportNames];
+        super({
+            getExportedNames: () => this.#exportNames,
+            resolveExport: (exportName) => {
+                return {
+                    module: this,
+                }
+            },
+        });
+    }
 }
 ```
