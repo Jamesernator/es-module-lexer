@@ -2,9 +2,10 @@
 all: lexer.wasm lexer.wat optimize
 
 lexer.wat: lexer.wasm
-	./wabt/bin/wasm2wat ./lexer.wasm -o ./lexer.wat
+	./wabt/bin/wasm2wat ./dist/lexer.wasm -o ./dist/lexer.wat
 
-lexer.wasm: ./lexer.c
+lexer.wasm: ./src/lexer.c
+	mkdir dist/
 	clang \
 		--target=wasm32 \
 		-O3 \
@@ -17,11 +18,11 @@ lexer.wasm: ./lexer.c
 		-Wl,--export=__heap_base \
 		-Wl,-z,stack-size=8388608 \
 		-Wl,--allow-undefined \
-		-o ./lexer.wasm \
-		./lexer.c
+		-o ./dist/lexer.wasm \
+		./src/lexer.c
 
 optimize: lexer.wasm
-	./binaryen/bin/wasm-opt -Oz ./lexer.wasm -o ./lexer.wasm
+	./binaryen/bin/wasm-opt -Oz ./dist/lexer.wasm -o ./dist/lexer.wasm
 
 clean:
-	rm lexer.wasm lexer.wat
+	rm dist/lexer.wasm dist/lexer.wat

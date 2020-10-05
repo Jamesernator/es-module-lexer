@@ -4,7 +4,7 @@ export type GetExportedNames = (exportStarSet: Set<Module>) => Array<string>;
 export const AMBIGUOUS = Symbol("ambiguous");
 export const NAMESPACE = Symbol("namespace");
 
-type ResolvedBinding = {
+export type ResolvedBinding = {
     module: Module,
     bindingName: string | typeof NAMESPACE,
     getBinding: () => any,

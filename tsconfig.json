@@ -3,6 +3,7 @@
     "target": "esnext",
     "module": "esnext",
     "sourceMap": true,
+    "declaration": true,
     "downlevelIteration": true,
 
     "strict": true,
@@ -13,7 +14,8 @@
     "allowSyntheticDefaultImports": true,
     "useDefineForClassFields": true,
     "importsNotUsedAsValues": "error",
-    "types": ["node"]
+    "types": ["node"],
+    "outDir": "./dist/"
   },
-  "include": ["./*.ts"]
+  "include": ["src/*.ts"]
 }
