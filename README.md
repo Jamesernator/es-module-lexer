@@ -117,3 +117,11 @@ await mod2.link();
 // Print some stuff
 mod2.evaluate();
 ```
+
+## Building
+
+Install `clang` and `build-essential`. (Other libraries may be needed depending on distribution to build `binaryen` and `wabt`).
+
+Use `./install-deps.sh` to install and build binaryen and wabt locally.
+
+Run `npm run build` to generate built files from sources into `./dist/`.
