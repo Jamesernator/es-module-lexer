@@ -74,8 +74,13 @@ export default class SourceTextModule extends CyclicModule {
         if (key !== KEY) {
             throw new Error("Use SourceTextModule.create() instead");
         }
-        const importedNames = parseResult.imports.map((i) => i.specifier);
-        const uniqueRequestedModules = [...new Set(importedNames)];
+        const requestedModules = [
+            ...parseResult.imports.map((i) => i.specifier),
+            ...parseResult.exports.flatMap((i) => {
+                return i.specifier === null ? [] : [i.specifier];
+            }),
+        ];
+        const uniqueRequestedModules = [...new Set(requestedModules)];
 
         super({
             requestedModules: uniqueRequestedModules,

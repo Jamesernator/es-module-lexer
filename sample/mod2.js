@@ -1,5 +1,5 @@
 
-export * from './mod1.js';
+export * from 'mod1';
 
 export const baz = 50;
 export let x = 12;
