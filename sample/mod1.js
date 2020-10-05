@@ -6,3 +6,5 @@ export class Bar {
 export default function foo() {
     return 12;
 }
+
+export * from 'mod2';

@@ -216,6 +216,9 @@ export default class CyclicModule extends Module {
             }
             return index;
         }
+        if (module.#status.name === "evaluating") {
+            return index;
+        }
         module.#status = {
             name: "evaluating",
             dfsIndex: index,
@@ -224,7 +227,7 @@ export default class CyclicModule extends Module {
         index += 1;
         stack.push(module);
         for (const required of module.#requestedModules) {
-            const requiredModule = this.#linkedModules.get(required);
+            const requiredModule = module.#linkedModules.get(required);
             if (!requiredModule) {
                 throw new Error("linked module is missing");
             }
