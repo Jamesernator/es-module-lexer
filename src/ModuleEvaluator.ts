@@ -5,9 +5,6 @@ import type { ParseResult } from "./parse.js";
 import replaceRanges from "./replaceRanges.js";
 import type { RangeReplacement } from "./replaceRanges.js";
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
-const GeneratorFunction = function* () { }.constructor as GeneratorFunctionConstructor;
-
 export type ModuleEvaluationGenerator = {
     generator: Generator<any, any, any>,
     importMetaName: string,
@@ -68,9 +65,10 @@ function createModuleEvaluationGenerator(
         }),
     ];
     const transformedSource = replaceRanges(sourceText, replacements);
-    const genFunction = new GeneratorFunction(`
+    // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval
+    const genFunction = new Function(`
         with (arguments[0]) {
-            yield* function*() {
+            return function*() {
                 "use strict";
                 yield {
                     __proto__: null,
