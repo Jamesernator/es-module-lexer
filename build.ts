@@ -1,9 +1,23 @@
+import fs from "fs/promises";
 import sh from "shelljs";
 
-sh.exec("make all");
+sh.rm("-rf", "./dist/");
 sh.rm("./.tsbuildinfo");
-sh.exec("npx tsc -- --project tsconfig.base.json");
+sh.exec("make all");
+sh.exec("./node_modules/.bin/tsc --project ./tsconfig.build.json");
 
-function encodeBase64(arrayBuffer: ArrayBuffer): string {
-
+function encodeString(arrayBuffer: ArrayBuffer): string {
+    return String.fromCharCode(...new Uint8Array(arrayBuffer));
 }
+
+const wasmBytes = await fs.readFile("./dist/lexer.wasm");
+const parseFile = await fs.readFile("./dist/parse.js", "utf8");
+
+const parseFileWithWasm = parseFile.replace(
+    `"$$ENCODED_WASM$$"`,
+    JSON.stringify(encodeString(wasmBytes)),
+);
+
+await fs.writeFile("./dist/parse.js", parseFileWithWasm);
+
+sh.exec("./node_modules/.bin/rollup dist/module-shim.js --file dist/module-shim.umd.js --format umd --name ModuleShim");

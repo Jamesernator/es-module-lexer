@@ -34,19 +34,17 @@ export type ParseResult = {
 
 const PAGE_SIZE = 2**16;
 
-// This string is replaced with an encoded wasm blob in Base64 during build
-const WASM_CONTENT = "$$ENCODED_WASM$$";
 
-async function getWasmModule(): Promise<WebAssembly.Module> {
-    if (typeof process === "object") {
-        const fsp = await import("fs/promises");
-        return await WebAssembly.compile(await fsp.readFile(wasmFile));
-    }
-    return await WebAssembly.compileStreaming(fetch(wasmFile.href));
+const parserModulePromise = WebAssembly.compile(
+    // The string $$ENCODED_WASM$$ is replaced with an encoded wasm blob in Base64 during build
+    decodeString("$$ENCODED_WASM$$"),
+);
+
+function decodeString(byteString: string): ArrayBuffer {
+    return new Uint8Array(
+        Array.from(byteString).map((i) => i.charCodeAt(0)),
+    ).buffer;
 }
-
-
-const parserModulePromise = getWasmModule();
 
 export default async function parse(code: string): Promise<ParseResult> {
     const imports: Array<Import> = [];
