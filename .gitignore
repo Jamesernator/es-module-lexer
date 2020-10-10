@@ -2,4 +2,4 @@
 /binaryen/
 /wabt/
 /dist/
-/tsbuildinfo.json
+/.tsbuildinfo

@@ -5,7 +5,7 @@
     "description": "",
     "scripts": {
         "test": "mocha ./test/*",
-        "build": "make all; tsc --project ./tsconfig.build.json"
+        "build": "make all; rm tsbuildinfo.json; tsc --project ./tsconfig.build.json; rollup dist/module-shim.js --file dist/module-shim.script.js --format iife --name ModuleShim"
     },
     "author": "",
     "license": "ISC",
@@ -14,15 +14,19 @@
         "@types/glob": "^7.1.3",
         "@types/js-yaml": "^3.12.5",
         "@types/node": "^14.11.7",
+        "@types/shelljs": "^0.8.8",
         "@typescript-eslint/eslint-plugin": "^3.9.0",
         "@typescript-eslint/parser": "^3.9.0",
         "eslint": "^7.6.0",
         "eslint-plugin-import": "^2.22.0",
         "glob": "^7.1.6",
         "js-yaml": "^3.14.0",
+        "rollup": "^2.29.0",
+        "shelljs": "^0.8.4",
         "typescript": "^3.9.7"
     },
     "exports": {
+        ".": "./dist/module-shim.js",
         "./Module": "./dist/Module.js",
         "./CyclicModule": "./dist/CyclicModule.js",
         "./SourceTextModule": "./dist/SourceTextModule.js"

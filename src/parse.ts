@@ -34,7 +34,8 @@ export type ParseResult = {
 
 const PAGE_SIZE = 2**16;
 
-const wasmFile = new URL("./lexer.wasm", import.meta.url);
+// This string is replaced with an encoded wasm blob in Base64 during build
+const WASM_CONTENT = "$$ENCODED_WASM$$";
 
 async function getWasmModule(): Promise<WebAssembly.Module> {
     if (typeof process === "object") {
@@ -103,8 +104,8 @@ export default async function parse(code: string): Promise<ParseResult> {
                 imports.push({
                     startPosition: openImport.startPosition,
                     endPosition,
-                    // eslint-disable-next-line no-eval
-                    specifier: eval(`${
+                    // eslint-disable-next-line no-eval, no-useless-call
+                    specifier: eval.call(null, `${
                         readString(specifierStart, specifierLength)
                     }`),
                     imports: Object.fromEntries(openImport.imports),
@@ -178,8 +179,8 @@ export default async function parse(code: string): Promise<ParseResult> {
                 exports.push({
                     startPosition: openExport.startPosition,
                     endPosition,
-                    // eslint-disable-next-line no-eval
-                    specifier: eval(`${
+                    // eslint-disable-next-line no-eval, no-useless-call
+                    specifier: eval.call(null, `${
                         readString(specifierStart, specifierLength)
                     }`),
                     exports: Object.fromEntries(openExport.exports),
