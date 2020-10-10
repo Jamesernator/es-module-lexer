@@ -1,0 +1,8 @@
+{
+    "files": [
+        "language/module-code/*.js",
+        "language/module-code/namespace/**/*.js",
+        "language/expressions/dynamic-import/**/*.js",
+        "language/expressions/import-meta/**/*.js"
+    ]
+}

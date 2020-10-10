@@ -106,6 +106,8 @@ export default class CyclicModule extends Module {
         this.#initializeEnvironment = initializeEnvironment;
         this.#executeModule = executeModule;
         this.#resolveModule = resolveModule;
+
+        Object.freeze(this);
     }
 
     #innerModuleLinking = async (
@@ -281,3 +283,6 @@ export default class CyclicModule extends Module {
         return this.#status.name;
     }
 }
+
+Object.freeze(CyclicModule);
+Object.freeze(CyclicModule.prototype);

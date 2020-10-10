@@ -112,10 +112,14 @@ export default class SourceTextModule extends CyclicModule {
                 if (typeof importModuleDynamically === "function") {
                     return importModuleDynamically(specifier, this);
                 }
-                throw new Error("No importModuleDynamically hook implemented");
+                throw new Error(
+                    "No importModuleDynamically hook implemented",
+                );
             },
             importEntries,
         });
+
+        Object.freeze(this);
     }
 
     #getEntries = (parseResult: ParseResult): EntriesLists => {
@@ -294,3 +298,6 @@ export default class SourceTextModule extends CyclicModule {
         return this.#source;
     }
 }
+
+Object.freeze(SourceTextModule);
+Object.freeze(SourceTextModule.prototype);

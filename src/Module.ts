@@ -133,6 +133,7 @@ export default abstract class Module {
         this.#evaluate = evaluate;
         this.#getExportedNames = getExportedNames;
         this.#resolveExport = resolveExport;
+        Object.freeze(this);
     }
 
     #getModuleNamespace = (): any => {
@@ -179,3 +180,6 @@ export default abstract class Module {
         this.#isEvaluated = true;
     }
 }
+
+Object.freeze(Module);
+Object.freeze(Module.prototype);

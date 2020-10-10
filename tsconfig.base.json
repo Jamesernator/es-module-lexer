@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "sourceMap": true,
+    "declaration": true,
+    "downlevelIteration": true,
+    "isolatedModules": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./tsbuildinfo.json",
+
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "useDefineForClassFields": true,
+    "importsNotUsedAsValues": "error",
+    "types": ["node"]
+  }
+}

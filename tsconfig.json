@@ -1,21 +1,4 @@
 {
-  "compilerOptions": {
-    "target": "esnext",
-    "module": "esnext",
-    "sourceMap": true,
-    "declaration": true,
-    "downlevelIteration": true,
-
-    "strict": true,
-    "noImplicitAny": true,
-    "noImplicitThis": true,
-
-    "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
-    "useDefineForClassFields": true,
-    "importsNotUsedAsValues": "error",
-    "types": ["node"],
-    "outDir": "./dist/"
-  },
-  "include": ["src/*.ts"]
+  "extends": "./tsconfig.base.json",
+  "include": ["src/*.ts", "test/**/*.ts"]
 }
