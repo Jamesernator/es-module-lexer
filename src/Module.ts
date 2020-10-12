@@ -38,9 +38,8 @@ function createModuleNamespace(resolvedExports: Map<string, () => any>) {
         value: "Module",
     });
     for (const exportName of sortedExportNames) {
-        const getBinding = resolvedExports.get(exportName)!;
         Object.defineProperty(target, exportName, {
-            value: getBinding(),
+            value: undefined,
             enumerable: true,
             writable: true,
             configurable: false,

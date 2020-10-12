@@ -187,7 +187,6 @@ export default class ModuleEvaluator {
             },
         );
         for (const entry of this.#importEntries) {
-            console.log(entry);
             const linkedModule = linkedModules.get(entry.specifier);
             if (!linkedModule) {
                 throw new Error("linkedModules must contain all imported modules");
@@ -214,11 +213,13 @@ export default class ModuleEvaluator {
             if (!linkedModule) {
                 throw new Error("linkedModules must contain all imported modules");
             }
-            const binding = linkedModule.resolveExport(entry.importName);
-            if (binding === null) {
-                throw new SyntaxError(`no imported name ${ JSON.stringify(entry.importName) }`);
-            } else if (binding === AMBIGUOUS) {
-                throw new SyntaxError(`imported name ${ entry.importName } is ambiguous`);
+            if (entry.importName !== "*") {
+                const binding = linkedModule.resolveExport(entry.importName);
+                if (binding === null) {
+                    throw new SyntaxError(`no imported name ${ JSON.stringify(entry.importName) }`);
+                } else if (binding === AMBIGUOUS) {
+                    throw new SyntaxError(`imported name ${ entry.importName } is ambiguous`);
+                }
             }
         }
         this.#initializeImportMeta(this.#importMeta);

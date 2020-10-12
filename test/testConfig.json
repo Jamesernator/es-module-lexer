@@ -27,6 +27,15 @@
             "expectedError": "Test262Error",
             "reason": "This behaviour requires modifying the construct after it has been declared, this would require a full parse",
             "possibleImpact": "Likely minimal as people probably do not care about anonymous default exports having the name 'default'"
+        },
+        {
+            "files": [
+                "language/module-code/instn-named-bndng-dflt-fun-anon.js",
+                "language/module-code/instn-named-bndng-dflt-gen-anon.js"
+            ],
+            "expectedError": "ReferenceError",
+            "reason": "This behaviour requires converting a function expression into a function declaration and correctly assigning the name default, while plausible this does not seem worth the effort",
+            "possibleImpact": "It's not inconceivable people are relying on anonymous function declarations being hoisted, however they can simply change them to named declarations"
         }
     ]
 }

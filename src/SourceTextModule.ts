@@ -75,11 +75,14 @@ export default class SourceTextModule extends CyclicModule {
             throw new Error("Use SourceTextModule.create() instead");
         }
         const requestedModules = [
-            ...parseResult.imports.map((i) => i.specifier),
-            ...parseResult.exports.flatMap((i) => {
-                return i.specifier === null ? [] : [i.specifier];
-            }),
-        ];
+            ...parseResult.imports,
+            ...parseResult.exports,
+        ]
+            .sort((a, b) => a.startPosition - b.startPosition)
+            .flatMap((i) => {
+                return i.specifier === null ? [] : i.specifier;
+            });
+
         const uniqueRequestedModules = [...new Set(requestedModules)];
 
         super({
@@ -256,8 +259,9 @@ export default class SourceTextModule extends CyclicModule {
                         getBinding: () => importedModule.namespace,
                     };
                 }
+
                 return importedModule.resolveExport(
-                    exportName,
+                    exportEntry.importName,
                     resolveSet,
                 );
             }
