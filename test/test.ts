@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import vm from "vm";
+import chalk from "chalk";
 import glob from "glob";
 import type * as ModuleShim from "../dist/module-shim.js";
 import TestContext from "./TestContext.js";
@@ -64,25 +65,20 @@ class PathLoader {
     }
 }
 
-async function runTest(file: string): Promise<void> {
+async function runTest(file: string): Promise<"success" | "skipped"> {
     const content = await fs.readFile(file, "utf8");
     const config = parseTestComment(content);
 
     if (!config.flags?.includes("module")) {
-        return;
+        return "skipped";
     }
 
     if (config.negative?.phase === "early"
     || config.negative?.phase === "parse") {
-        return;
+        return "skipped";
     }
 
     const isAsync = config.flags.includes("async");
-
-    if (isAsync) {
-        // TODO:
-        return;
-    }
 
     const testContext = new TestContext();
 
@@ -99,17 +95,32 @@ async function runTest(file: string): Promise<void> {
         await module.link();
 
         try {
+            let done: Promise<void> = Promise.resolve();
+            if (isAsync) {
+                done = new Promise((resolve, reject) => {
+                    testContext.globalThis.$DONE = (error?: any) => {
+                        if (error === undefined) {
+                            resolve();
+                        } else {
+                            reject(error);
+                        }
+                    };
+                });
+            }
             module.evaluate();
+            if (isAsync) {
+                await done;
+            }
         } catch (err) {
             if (config.negative?.phase === "runtime") {
-                return;
+                return "success";
             }
             throw err;
         }
     } catch (err) {
         if (config.negative?.phase === "resolution"
         && config.negative.type === err?.constructor.name) {
-            return;
+            return "success";
         }
         throw err;
     }
@@ -132,12 +143,15 @@ async function runTests() {
         .filter((file) => !file.endsWith("_FIXTURE.js"));
 
     for (const testFile of testFiles) {
+        const relativeTestFile = path.normalize(
+            path.relative(TESTS_DIR, testFile),
+        );
         try {
-            await runTest(testFile);
+            const result = await runTest(testFile);
+            if (result !== "skipped") {
+                console.log(chalk.green(`✔ ${ relativeTestFile }`));
+            }
         } catch (err) {
-            const relativeTestFile = path.normalize(
-                path.relative(TESTS_DIR, testFile),
-            );
             const allowedFailure = testConfig.allowedFailures
                 .find((allowedFailure) => {
                     return allowedFailure.files
@@ -146,7 +160,7 @@ async function runTests() {
                 });
             if (!allowedFailure?.expectedError
             || allowedFailure.expectedError !== err?.constructor.name) {
-                console.log(relativeTestFile);
+                console.log(chalk.red(`✘ ${ relativeTestFile }`));
                 throw err;
             }
         }

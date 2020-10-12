@@ -99,8 +99,8 @@ export default async function parse(code: string): Promise<ParseResult> {
                     throw new Error("Emitted name without import");
                 }
                 openImport.imports.push({
-                    importName: readString(importNameStart, importNameLength),
-                    localName: readString(asNameStart, asNameLength),
+                    importName: readIdentifier(importNameStart, importNameLength),
+                    localName: readIdentifier(asNameStart, asNameLength),
                 });
             },
             finalizeImport(
@@ -160,8 +160,8 @@ export default async function parse(code: string): Promise<ParseResult> {
                     throw new Error("Emitted export name without opening");
                 }
                 openExport.exports.push({
-                    importName: readString(importNameStart, importNameLength),
-                    exportName: readString(asNameStart, asNameLength),
+                    importName: readIdentifier(importNameStart, importNameLength),
+                    exportName: readIdentifier(asNameStart, asNameLength),
                 });
             },
             finalizeExport(
@@ -213,6 +213,10 @@ export default async function parse(code: string): Promise<ParseResult> {
             .join("");
     }
 
+    function readIdentifier(start: number, length: number) {
+        const string = readString(start, length);
+        return JSON.parse(`"${ string }"`);
+    }
 
     const { memory, parse } = instance.exports as {
         memory: WebAssembly.Memory,
