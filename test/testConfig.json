@@ -4,5 +4,29 @@
         "language/module-code/namespace/**/*.js",
         "language/expressions/dynamic-import/**/*.js",
         "language/expressions/import-meta/**/*.js"
+    ],
+    "allowedFailures": [
+        {
+            "files": [
+                "language/module-code/eval-export-dflt-cls-anon-semi.js",
+                "language/module-code/eval-export-dflt-fun-anon-semi.js",
+                "language/module-code/eval-export-dflt-gen-anon-semi.js",
+                "language/module-code/eval-export-dflt-cls-named-semi.js"
+            ],
+            "expectedError": "SyntaxError",
+            "reason": "This ASI behaviour depends on a full parse of the exported construct, so we don't support this case",
+            "possibleImpact": "It's unlikely anyone is writing code like this, however it's conceivable a minifier could generate code like this"
+        },
+        {
+            "files": [
+                "language/module-code/eval-export-dflt-cls-anon.js",
+                "language/module-code/eval-export-dflt-expr-cls-anon.js",
+                "language/module-code/eval-export-dflt-expr-fn-anon.js",
+                "language/module-code/eval-export-dflt-expr-gen-anon.js"
+            ],
+            "expectedError": "Test262Error",
+            "reason": "This behaviour requires modifying the construct after it has been declared, this would require a full parse",
+            "possibleImpact": "Likely minimal as people probably do not care about anonymous default exports having the name 'default'"
+        }
     ]
 }

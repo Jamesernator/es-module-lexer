@@ -1,4 +1,5 @@
 import fs from "fs/promises";
+import { fileURLToPath } from "url";
 import vm from "vm";
 import parseTestComment from "./parseTestComment.js";
 
@@ -107,15 +108,18 @@ export default class TestContext {
         return this.#context;
     }
 
-    runScript(scriptSource: string): any {
-        return vm.runInContext(scriptSource, this.#context);
+    runScript(script: vm.Script): any {
+        return script.runInContext(this.#context);
     }
 
-    async include(harnessFile: string): Promise<void> {
+    async includeHarnessFile(harnessFile: string): Promise<void> {
         const scriptSource = await fs.readFile(
             new URL(harnessFile, HARNESS_DIR),
             "utf8",
         );
-        vm.runInContext(scriptSource, this.#context);
+        const script = new vm.Script(scriptSource, {
+            filename: fileURLToPath(new URL(harnessFile, HARNESS_DIR)),
+        });
+        script.runInContext(this.#context);
     }
 }

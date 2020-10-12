@@ -88,7 +88,9 @@ export default class SourceTextModule extends CyclicModule {
             initializeEnvironment: (...args) => {
                 return this.#initalizeEnvironment(...args);
             },
-            executeModule: () => this.#executeModule(),
+            executeModule: (linkedModules: Map<string, Module>) => {
+                return this.#executeModule(linkedModules);
+            },
             getExportedNames: (...args) => this.#getExportedNames(...args),
             resolveExport: (...args) => this.#resolveExport(...args),
         });
@@ -125,8 +127,8 @@ export default class SourceTextModule extends CyclicModule {
     #getEntries = (parseResult: ParseResult): EntriesLists => {
         const importEntries: Array<ImportEntry> = parseResult.imports
             .flatMap((i) => {
-                return Object.entries(i.imports)
-                    .map(([importName, localName]) => ({
+                return i.imports
+                    .map(({ importName, localName }) => ({
                         specifier: i.specifier,
                         importName,
                         localName,
@@ -180,8 +182,8 @@ export default class SourceTextModule extends CyclicModule {
         }
 
         for (const exportEntry of parseResult.exports) {
-            for (const [name, asName] of Object.entries(exportEntry.exports)) {
-                addEntry(exportEntry, name, asName);
+            for (const { importName, exportName } of exportEntry.exports) {
+                addEntry(exportEntry, importName, exportName);
             }
         }
 
@@ -290,8 +292,8 @@ export default class SourceTextModule extends CyclicModule {
         this.#moduleEvaluator.initialize(linkedModules);
     };
 
-    #executeModule = (): void => {
-        this.#moduleEvaluator.evaluate();
+    #executeModule = (linkedModules: Map<string, Module>): void => {
+        this.#moduleEvaluator.evaluate(linkedModules);
     };
 
     get source(): string {

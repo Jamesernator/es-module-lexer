@@ -21,6 +21,6 @@ const parseFileWithWasm = parseFile.replace(
 
 await fs.writeFile("./dist/parse.js", parseFileWithWasm);
 
-sh.exec("./node_modules/.bin/rollup dist/module-shim.js --file dist/module-shim.umd.js --format umd --name ModuleShim");
-sh.exec("./node_modules/.bin/rollup dist/module-shim.js --file dist/module-shim.script.js --format iife --name ModuleShim");
-sh.exec("./node_modules/.bin/rollup dist/module-shim.js --file dist/module-shim.cjs --format cjs");
+sh.exec("./node_modules/.bin/rollup dist/module-shim.js --file dist/module-shim.umd.js --format umd --name ModuleShim -m");
+sh.exec("./node_modules/.bin/rollup dist/module-shim.js --file dist/module-shim.script.js --format iife --name ModuleShim -m");
+sh.exec("./node_modules/.bin/rollup dist/module-shim.js --file dist/module-shim.cjs --format cjs -m");

@@ -6,7 +6,7 @@ export type ResolveModule
 export type CyclicModuleOptions = {
     requestedModules: Array<string>,
     initializeEnvironment: (linkedModules: Map<string, Module>) => void,
-    executeModule: () => void,
+    executeModule: (linkedModules: Map<string, Module>) => void,
     resolveModule: ResolveModule,
     getExportedNames: (
         linkedModules: Map<string, Module>,
@@ -44,7 +44,7 @@ export default class CyclicModule extends Module {
 
     readonly #requestedModules: ReadonlyArray<string>;
     readonly #initializeEnvironment: (linkedModules: Map<string, Module>) => void;
-    readonly #executeModule: () => void;
+    readonly #executeModule: (linkedModules: Map<string, Module>) => void;
     readonly #resolveModule: ResolveModule;
     readonly #linkedModules = new Map<string, Module>();
     #status: CyclicModuleStatus = { name: "unlinked" };
@@ -246,7 +246,7 @@ export default class CyclicModule extends Module {
                 );
             }
         }
-        module.#executeModule();
+        module.#executeModule(this.#linkedModules);
         if (module.#status.dfsAncestorIndex === module.#status.dfsIndex) {
             let done = false;
             while (!done) {

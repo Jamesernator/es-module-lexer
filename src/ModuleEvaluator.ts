@@ -23,14 +23,15 @@ function createModuleEvaluationGenerator(
     const getters = parseResult.exports
         .filter((e) => e.specifier === null)
         .flatMap((e) => {
-            return Object.entries(e.exports)
-                .map(([localName, asName]) => {
-                    if (localName === "default") {
-                        localName = defaultExportName;
+            return e.exports
+                .map(({ importName, exportName }) => {
+                    if (importName === "default") {
+                        importName = defaultExportName;
                     }
-                    return `get ${ asName }() { return ${ localName } }`;
+                    return `get ${ exportName }() { return ${ importName }; }`;
                 });
         });
+
     const replacements: Array<RangeReplacement> = [
         ...parseResult.imports.map((i) => {
             return {
@@ -54,9 +55,12 @@ function createModuleEvaluationGenerator(
             };
         }),
         ...parseResult.exports.map((i) => {
-            const replacement = i.exports.default === "default"
-                ? `const ${ defaultExportName } = `
-                : "";
+            let replacement: string = "";
+            if (i.exports[0]?.exportName === "default"
+            && i.exports[0]?.importName === "default"
+            && i.specifier === null) {
+                replacement = `const ${ defaultExportName } = `;
+            }
             return {
                 start: i.startPosition,
                 end: i.endPosition,
@@ -65,6 +69,7 @@ function createModuleEvaluationGenerator(
         }),
     ];
     const transformedSource = replaceRanges(sourceText, replacements);
+
     // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval
     const genFunction = new Function(`
         with (arguments[0]) {
@@ -78,6 +83,7 @@ function createModuleEvaluationGenerator(
             }();
         }
     `);
+
     return {
         generator: genFunction(scope),
         importMetaName,
@@ -181,6 +187,7 @@ export default class ModuleEvaluator {
             },
         );
         for (const entry of this.#importEntries) {
+            console.log(entry);
             const linkedModule = linkedModules.get(entry.specifier);
             if (!linkedModule) {
                 throw new Error("linkedModules must contain all imported modules");
@@ -188,24 +195,32 @@ export default class ModuleEvaluator {
             const binding = entry.importName === "*"
                 ? { getBinding: () => linkedModule.namespace }
                 : linkedModule.resolveExport(entry.importName);
-            if (binding === null) {
-                throw new SyntaxError(`module has no exported name ${ entry.importName }`);
+            if (binding !== null && binding !== AMBIGUOUS) {
+                Object.defineProperty(this.#moduleScope, entry.localName, {
+                    get: binding.getBinding,
+                });
             }
-            if (binding === AMBIGUOUS) {
-                throw new SyntaxError(`import ${ entry.importName } is ambiguous`);
-            }
-            Object.defineProperty(this.#moduleScope, entry.localName, {
-                get: binding.getBinding,
-            });
         }
         this.#state = { name: "initialized" };
     }
 
-    evaluate(): void {
+    evaluate(linkedModules: Map<string, Module>): void {
         if (this.#state.name !== "initialized") {
             throw new Error("evaluator must be initialized to evaluate");
         }
         this.#state = { name: "evaluating" };
+        for (const entry of this.#importEntries) {
+            const linkedModule = linkedModules.get(entry.specifier);
+            if (!linkedModule) {
+                throw new Error("linkedModules must contain all imported modules");
+            }
+            const binding = linkedModule.resolveExport(entry.importName);
+            if (binding === null) {
+                throw new SyntaxError(`no imported name ${ JSON.stringify(entry.importName) }`);
+            } else if (binding === AMBIGUOUS) {
+                throw new SyntaxError(`imported name ${ entry.importName } is ambiguous`);
+            }
+        }
         this.#initializeImportMeta(this.#importMeta);
         this.#moduleEvaluationGenerator.generator.next();
         this.#state = { name: "evaluated" };

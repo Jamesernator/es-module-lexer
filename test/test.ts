@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
-import chalk from "chalk";
+import vm from "vm";
 import glob from "glob";
 import type * as ModuleShim from "../dist/module-shim.js";
 import TestContext from "./TestContext.js";
@@ -9,10 +9,12 @@ import parseTestComment from "./parseTestComment.js";
 
 const TEST_CONFIG_FILE = new URL("./testConfig.json", import.meta.url);
 const TESTS_DIR = fileURLToPath(new URL("./test262/test/", import.meta.url));
-const MODULE_SHIM = await fs.readFile(
-    new URL("../dist/module-shim.script.js", import.meta.url),
-    "utf8",
-);
+
+const MODULE_SHIM_URL = new URL("../dist/module-shim.script.js", import.meta.url);
+const MODULE_SHIM = new vm.Script(await fs.readFile(MODULE_SHIM_URL, "utf8"), {
+    filename: fileURLToPath(MODULE_SHIM_URL),
+});
+
 
 class PathLoader {
     #moduleShim: typeof ModuleShim;
@@ -36,7 +38,7 @@ class PathLoader {
             if (basePath === undefined) {
                 throw new Error("parentModule must be resolved to a path");
             }
-            modulePath = path.join(basePath, modulePath);
+            modulePath = path.join(path.dirname(basePath), modulePath);
         }
         modulePath = path.normalize(modulePath);
         const resolvedModule = this.#resolvedPaths.get(modulePath);
@@ -57,6 +59,7 @@ class PathLoader {
             },
         });
         this.#resolvedPaths.set(modulePath, module);
+        this.#paths.set(module, modulePath);
         return module;
     }
 }
@@ -66,6 +69,11 @@ async function runTest(file: string): Promise<void> {
     const config = parseTestComment(content);
 
     if (!config.flags?.includes("module")) {
+        return;
+    }
+
+    if (config.negative?.phase === "early"
+    || config.negative?.phase === "parse") {
         return;
     }
 
@@ -79,25 +87,69 @@ async function runTest(file: string): Promise<void> {
     const testContext = new TestContext();
 
     for (const includedFile of config.includes ?? []) {
-        await testContext.include(includedFile);
+        await testContext.includeHarnessFile(includedFile);
     }
 
     testContext.runScript(MODULE_SHIM);
+    testContext.globalThis.console = console;
     const moduleShim = testContext.globalThis.ModuleShim as typeof ModuleShim;
+    const loader = new PathLoader(moduleShim);
+    try {
+        const module = await loader.resolve(file);
+        await module.link();
+
+        try {
+            module.evaluate();
+        } catch (err) {
+            if (config.negative?.phase === "runtime") {
+                return;
+            }
+            throw err;
+        }
+    } catch (err) {
+        if (config.negative?.phase === "resolution"
+        && config.negative.type === err?.constructor.name) {
+            return;
+        }
+        throw err;
+    }
 }
 
 async function runTests() {
     const testConfig = JSON.parse(
         await fs.readFile(TEST_CONFIG_FILE, "utf8"),
-    ) as { files: Array<string> };
+    ) as {
+        files: Array<string>,
+        allowedFailures: Array<{
+            files: Array<string>,
+            expectedError: string,
+        }>,
+    };
 
     const testFiles = testConfig.files
         .flatMap((pattern) => glob.sync(pattern, { cwd: TESTS_DIR }))
-        .map((file) => path.join(TESTS_DIR, file))
+        .map((file) => path.normalize(path.join(TESTS_DIR, file)))
         .filter((file) => !file.endsWith("_FIXTURE.js"));
 
     for (const testFile of testFiles) {
-        await runTest(testFile);
+        try {
+            await runTest(testFile);
+        } catch (err) {
+            const relativeTestFile = path.normalize(
+                path.relative(TESTS_DIR, testFile),
+            );
+            const allowedFailure = testConfig.allowedFailures
+                .find((allowedFailure) => {
+                    return allowedFailure.files
+                        .map((file) => path.normalize(file))
+                        .includes(relativeTestFile);
+                });
+            if (!allowedFailure?.expectedError
+            || allowedFailure.expectedError !== err?.constructor.name) {
+                console.log(relativeTestFile);
+                throw err;
+            }
+        }
     }
 }
 

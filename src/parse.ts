@@ -3,7 +3,10 @@ export type Import = {
     startPosition: number,
     endPosition: number,
     specifier: string,
-    imports: Record<string, string>,
+    imports: Array<{
+        importName: string,
+        localName: string,
+    }>,
 };
 
 export type ImportMeta = {
@@ -22,7 +25,10 @@ export type Export = {
     startPosition: number,
     endPosition: number,
     specifier: string | null,
-    exports: Record<string, string>,
+    exports: Array<{
+        importName: string,
+        exportName: string,
+    }>,
 };
 
 export type ParseResult = {
@@ -54,12 +60,18 @@ export default async function parse(code: string): Promise<ParseResult> {
 
     let openImport: null | {
         startPosition: number,
-        imports: Array<[string, string]>,
+        imports: Array<{
+            importName: string,
+            localName: string,
+        }>,
     } = null;
 
     let openExport: null | {
         startPosition: number,
-        exports: Array<[string, string]>,
+        exports: Array<{
+            importName: string,
+            exportName: string,
+        }>,
     } = null;
 
     const parserModule = await parserModulePromise;
@@ -86,10 +98,10 @@ export default async function parse(code: string): Promise<ParseResult> {
                 if (!openImport) {
                     throw new Error("Emitted name without import");
                 }
-                openImport.imports.push([
-                    readString(importNameStart, importNameLength),
-                    readString(asNameStart, asNameLength),
-                ]);
+                openImport.imports.push({
+                    importName: readString(importNameStart, importNameLength),
+                    localName: readString(asNameStart, asNameLength),
+                });
             },
             finalizeImport(
                 endPosition: number,
@@ -106,7 +118,7 @@ export default async function parse(code: string): Promise<ParseResult> {
                     specifier: eval.call(null, `${
                         readString(specifierStart, specifierLength)
                     }`),
-                    imports: Object.fromEntries(openImport.imports),
+                    imports: openImport.imports,
                 });
                 openImport = null;
             },
@@ -139,18 +151,18 @@ export default async function parse(code: string): Promise<ParseResult> {
                 };
             },
             emitExportName(
-                exportNameStart: number,
-                exportNameLength: number,
+                importNameStart: number,
+                importNameLength: number,
                 asNameStart: number,
                 asNameLength: number,
             ) {
                 if (!openExport) {
                     throw new Error("Emitted export name without opening");
                 }
-                openExport.exports.push([
-                    readString(exportNameStart, exportNameLength),
-                    readString(asNameStart, asNameLength),
-                ]);
+                openExport.exports.push({
+                    importName: readString(importNameStart, importNameLength),
+                    exportName: readString(asNameStart, asNameLength),
+                });
             },
             finalizeExport(
                 endPosition: number,
@@ -162,7 +174,7 @@ export default async function parse(code: string): Promise<ParseResult> {
                     startPosition: openExport.startPosition,
                     endPosition,
                     specifier: null,
-                    exports: Object.fromEntries(openExport.exports),
+                    exports: openExport.exports,
                 });
                 openExport = null;
             },
@@ -181,7 +193,7 @@ export default async function parse(code: string): Promise<ParseResult> {
                     specifier: eval.call(null, `${
                         readString(specifierStart, specifierLength)
                     }`),
-                    exports: Object.fromEntries(openExport.exports),
+                    exports: openExport.exports,
                 });
                 openExport = null;
             },

@@ -4,7 +4,7 @@
     "version": "1.0.0",
     "description": "",
     "scripts": {
-        "test": "node --loader ./typescript-loader.js test/test.ts",
+        "test": "npm run build; node --loader ./typescript-loader.js test/test.ts",
         "build": "node --loader ./typescript-loader.js build.ts"
     },
     "author": "",

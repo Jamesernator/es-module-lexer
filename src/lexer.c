@@ -380,6 +380,7 @@ void consumeNamedImports(ParserState* state) {
         consumeWhitespaceAndComments(state);
         if (peekChar(state) == ',') {
             consumePunctuator(state);
+            consumeWhitespaceAndComments(state);
         }
     }
     if (state->position >= state->code.length) {
@@ -601,6 +602,7 @@ void consumeNamedExports(ParserState* state) {
         consumeWhitespaceAndComments(state);
         if (peekChar(state) == ',') {
             consumePunctuator(state);
+            consumeWhitespaceAndComments(state);
         }
     }
     if (state->position >= state->code.length) {
