@@ -4,8 +4,8 @@
     "version": "1.0.0",
     "description": "",
     "scripts": {
-        "test": "mocha ./test/*",
-        "build": "make all; rm tsbuildinfo.json; tsc --project ./tsconfig.build.json; rollup dist/module-shim.js --file dist/module-shim.script.js --format iife --name ModuleShim"
+        "test": "node --loader ./typescript-loader.js test/test.ts",
+        "build": "node --loader ./typescript-loader.js build.ts"
     },
     "author": "",
     "license": "ISC",

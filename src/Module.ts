@@ -98,7 +98,7 @@ function createModuleNamespace(resolvedExports: Map<string, () => any>) {
             return getBinding?.();
         },
         set() {
-            return true;
+            return false;
         },
     });
 }

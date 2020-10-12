@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import sh from "shelljs";
 
 sh.rm("-rf", "./dist/");
+sh.mkdir("./dist/");
 sh.rm("./.tsbuildinfo");
 sh.exec("make all");
 sh.exec("./node_modules/.bin/tsc --project ./tsconfig.build.json");
@@ -21,3 +22,5 @@ const parseFileWithWasm = parseFile.replace(
 await fs.writeFile("./dist/parse.js", parseFileWithWasm);
 
 sh.exec("./node_modules/.bin/rollup dist/module-shim.js --file dist/module-shim.umd.js --format umd --name ModuleShim");
+sh.exec("./node_modules/.bin/rollup dist/module-shim.js --file dist/module-shim.script.js --format iife --name ModuleShim");
+sh.exec("./node_modules/.bin/rollup dist/module-shim.js --file dist/module-shim.cjs --format cjs");

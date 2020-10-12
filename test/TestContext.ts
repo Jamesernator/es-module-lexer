@@ -1,6 +1,6 @@
 import fs from "fs/promises";
 import vm from "vm";
-import type { Realm } from "../src/Realm.js";
+import parseTestComment from "./parseTestComment.js";
 
 const HARNESS_DIR = new URL("./test262/harness/", import.meta.url);
 const BOOTSTRAP_SCRIPTS = await Promise.all([
@@ -27,8 +27,8 @@ type $262 = {
 
 export default class TestContext {
     readonly #context: any;
-    readonly #globalThis: typeof globalThis & { [key: string]: any };
     readonly #_262: $262;
+    readonly #globalThis: typeof globalThis & { [key: string]: any };
 
     constructor() {
         this.#context = vm.createContext();
@@ -76,6 +76,15 @@ export default class TestContext {
         };
         Object.setPrototypeOf(this.#_262.agent, this.#globalThis.Object.prototype);
         Object.setPrototypeOf(this.#_262, this.#globalThis.Object.prototype);
+        Object.defineProperty(this.#globalThis, "$262", {
+            value: this.#_262,
+            writable: true,
+            configurable: true,
+        });
+    }
+
+    get globalThis(): typeof globalThis & { [key: string]: any } {
+        return this.#globalThis;
     }
 
     #wrap = <Args extends Array<any>, Return>(
@@ -88,15 +97,25 @@ export default class TestContext {
         `)(func);
     };
 
+    wrap = <Args extends Array<any>, Return>(
+        func: (...args: Args) => Return,
+    ): (...args: Args) => Return => {
+        return this.#wrap(func);
+    };
+
     get context(): any {
         return this.#context;
     }
 
-    get globalThis(): any {
-        return this.#globalThis;
-    }
-
     runScript(scriptSource: string): any {
         return vm.runInContext(scriptSource, this.#context);
+    }
+
+    async include(harnessFile: string): Promise<void> {
+        const scriptSource = await fs.readFile(
+            new URL(harnessFile, HARNESS_DIR),
+            "utf8",
+        );
+        vm.runInContext(scriptSource, this.#context);
     }
 }
