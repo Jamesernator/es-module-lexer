@@ -95,7 +95,9 @@ function createModuleNamespace(resolvedExports: Map<string, () => any>) {
             }
             const getBinding = resolvedExports.get(prop);
             const value = getBinding?.();
-            Reflect.set(target, prop, value);
+            if (getBinding) {
+                Reflect.set(target, prop, value);
+            }
             return value;
         },
         set() {
