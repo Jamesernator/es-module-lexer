@@ -1,5 +1,5 @@
 {
-    "name": "@jamesernator/module-shim",
+    "name": "module-shim",
     "type": "module",
     "version": "1.0.5",
     "description": "",
