@@ -6,6 +6,7 @@
     "author": "James 'The Jamesernator' Browning",
     "license": "ISC",
     "scripts": {
+        "prepublish": "npm run build",
         "test": "npm run build; node --loader ./typescript-loader.js test/test.ts",
         "build": "node --loader ./typescript-loader.js build.ts"
     },
