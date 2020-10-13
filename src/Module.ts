@@ -171,6 +171,9 @@ export default abstract class Module {
     }
 
     async link(): Promise<void> {
+        if (this.#isEvaluated) {
+            return;
+        }
         await this.#link();
     }
 

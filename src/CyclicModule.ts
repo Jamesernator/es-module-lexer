@@ -25,7 +25,6 @@ export type CyclicModuleStatus
         name: "linking",
         dfsIndex: number,
         dfsAncestorIndex: number,
-        initializing: boolean,
     }
     | { name: "linked" }
     | { name: "evaluating", dfsIndex: number, dfsAncestorIndex: number }
@@ -64,19 +63,11 @@ export default class CyclicModule extends Module {
                 if (this.#status.name === "unlinked") {
                     throw new Error("can't get exported names before linking");
                 }
-                if (this.#status.name === "linking"
-                && !this.#status.initializing) {
-                    throw new Error("can't get exported names until all dependent modules are ready to initialize");
-                }
                 return getExportedNames(this.#linkedModules, exportStarSet);
             },
             resolveExport: (exportName, resolveSet) => {
                 if (this.#status.name === "unlinked") {
                     throw new Error("can't resolve export before linking");
-                }
-                if (this.#status.name === "linking"
-                && !this.#status.initializing) {
-                    throw new Error("can't resolve export until all dependent modules are ready to initialize");
                 }
                 return resolveExport(
                     this.#linkedModules,
@@ -131,7 +122,6 @@ export default class CyclicModule extends Module {
             name: "linking",
             dfsIndex: index,
             dfsAncestorIndex: index,
-            initializing: false,
         };
         index += 1;
         stack.push(module);
@@ -156,8 +146,6 @@ export default class CyclicModule extends Module {
                 );
             }
         }
-        // eslint-disable-next-line require-atomic-updates
-        module.#status.initializing = true;
         module.#initializeEnvironment(module.#linkedModules);
         if (module.#status.dfsAncestorIndex === module.#status.dfsIndex) {
             let done = false;
@@ -179,6 +167,9 @@ export default class CyclicModule extends Module {
         if (this.#status.name === "evaluating") {
             throw new Error("module can't be linked during evaluation");
         }
+        if (this.#status.name !== "unlinked") {
+            return;
+        }
         const stack: Array<CyclicModule> = [];
         try {
             await this.#innerModuleLinking(this, stack, 0);
@@ -193,10 +184,6 @@ export default class CyclicModule extends Module {
                 throw new Error("module status must now be unlinked");
             }
             throw error;
-        }
-        if (this.#status.name !== "linked"
-        && this.#status.name !== "evaluated") {
-            throw new Error("module must now be linked");
         }
         if (stack.length !== 0) {
             throw new Error("stack should be empty");
@@ -246,7 +233,7 @@ export default class CyclicModule extends Module {
                 );
             }
         }
-        module.#executeModule(this.#linkedModules);
+        module.#executeModule(module.#linkedModules);
         if (module.#status.dfsAncestorIndex === module.#status.dfsIndex) {
             let done = false;
             while (!done) {
@@ -264,6 +251,9 @@ export default class CyclicModule extends Module {
     };
 
     #evaluate = (): void => {
+        if (this.#status.name === "evaluating") {
+            throw new Error("module may not be evaluated again during evaluation");
+        }
         if (this.#status.name !== "linked"
         && this.#status.name !== "evaluated") {
             throw new Error("module must be in state linked or evaluated before calling evaluate");

@@ -130,7 +130,7 @@ export default class ModuleEvaluator {
     readonly #moduleScope: any = Object.create(null);
     readonly #localNamespace: any;
     readonly #importEntries: Array<ImportEntry>;
-    readonly #importMeta: any = {};
+    readonly #importMeta: any = { __proto__: null };
     readonly #initializeImportMeta: (importMeta: any) => void;
     readonly #importModuleDynamically: (specifier: string) => Module | Promise<Module>;
     readonly #moduleEvaluationGenerator: ModuleEvaluationGenerator;
@@ -159,8 +159,8 @@ export default class ModuleEvaluator {
         return this.#localNamespace;
     }
 
-    #dynamicImport = async (specifier: string): Promise<any> => {
-        const module = await this.#importModuleDynamically(specifier);
+    #dynamicImport = async (specifier: any): Promise<any> => {
+        const module = await this.#importModuleDynamically(String(specifier));
         if (!module.isEvaluated) {
             throw new Error("importModuleDynamically must evaluate the module");
         }
