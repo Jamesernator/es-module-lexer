@@ -93,7 +93,10 @@ function createModuleNamespace(resolvedExports: Map<string, () => any>) {
             if (typeof prop === "symbol") {
                 return Reflect.get(target, prop, receiver);
             }
-            return Reflect.getOwnPropertyDescriptor(target, prop)?.value;
+            const getBinding = resolvedExports.get(prop);
+            const value = getBinding?.();
+            Reflect.set(target, prop, value);
+            return value;
         },
         set() {
             return false;
