@@ -114,7 +114,7 @@ async function runTests() {
                         .includes(relativeTestFile);
                 });
             if (!allowedFailure?.expectedError
-            || allowedFailure.expectedError !== '*any*'
+            || allowedFailure.expectedError !== "*any*"
             && allowedFailure.expectedError !== err?.constructor?.name) {
                 console.log(chalk.red(`✘ ${ relativeTestFile }`));
                 throw err;
