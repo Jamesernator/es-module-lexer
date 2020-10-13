@@ -10,7 +10,15 @@
         "build": "node --loader ./typescript-loader.js build.ts"
     },
     "exports": {
-        ".": "./dist/module-shim.js",
+        ".": {
+            "require": "./dist/module-shim.cjs",
+            "umd": "./dist/module-shim.umd.cjs",
+            "script": "./dist/module-shim.script.js",
+            "default": "./dist/module-shim.js"
+        },
+        "./module-shim.cjs": "./dist/module-shim.cjs",
+        "./module-shim.script.js": "./dist/module-shim.script.js",
+        "./module-shim.js": "./dist/module-shim.js",
         "./Module": "./dist/Module.js",
         "./CyclicModule": "./dist/CyclicModule.js",
         "./SourceTextModule": "./dist/SourceTextModule.js"
