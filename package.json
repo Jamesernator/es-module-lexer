@@ -27,7 +27,8 @@
         "./dist/",
         "./src/",
         "./tsconfig.base.json",
-        "./tsconfig.json"
+        "./tsconfig.json",
+        "README.md"
     ],
     "devDependencies": {
         "@jsxt/eslint-config-typescript": "^4.1.3",
