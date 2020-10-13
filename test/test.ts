@@ -40,8 +40,6 @@ async function runTest(file: string): Promise<"success" | "skipped"> {
     }
 
     testContext.runScript(MODULE_SHIM);
-    // eslint-disable-next-line require-atomic-updates
-    testContext.globalThis.console = console;
     const moduleShim = testContext.globalThis.ModuleShim as typeof ModuleShim;
     const loader = new PathLoader(moduleShim);
     try {
