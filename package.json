@@ -24,10 +24,10 @@
         "./SourceTextModule": "./dist/SourceTextModule.js"
     },
     "files": [
-        "./dist/",
-        "./src/",
-        "./tsconfig.base.json",
-        "./tsconfig.json",
+        "dist/*",
+        "src/*",
+        "tsconfig.base.json",
+        "tsconfig.json",
         "README.md"
     ],
     "devDependencies": {
