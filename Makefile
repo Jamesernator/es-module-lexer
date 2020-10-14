@@ -15,7 +15,6 @@ lexer.wasm: ./src/lexer.c
 		-Wno-int-conversion \
 		-Wl,--no-entry \
 		-Wl,--export=parse \
-		-Wl,--export=__heap_base \
 		-Wl,-z,stack-size=8388608 \
 		-Wl,--allow-undefined \
 		-o ./dist/lexer.wasm \
