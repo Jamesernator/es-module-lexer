@@ -27,7 +27,6 @@ type ModuleEvaluatorOptions = {
 };
 
 export default class GeneratorModuleEvaluator implements ModuleEvaluator {
-    readonly #localNamespace: any;
     readonly #importEntries: Array<ImportEntry>;
     readonly #indirectExportEntries: Array<IndirectExportEntry>;
     readonly #initializeImportMeta: (importMeta: any) => void;
@@ -35,6 +34,8 @@ export default class GeneratorModuleEvaluator implements ModuleEvaluator {
     readonly #moduleEvaluationGenerator: ModuleEvaluationGenerator;
     readonly #importMeta: any = Object.create(null);
     readonly #moduleScope: any = Object.create(null);
+    readonly #localNamespace: any;
+
     #state: ModuleEvaluatorState = "uninitialized";
 
     constructor({
@@ -45,13 +46,17 @@ export default class GeneratorModuleEvaluator implements ModuleEvaluator {
         importEntries,
         indirectExportEntries,
     }: ModuleEvaluatorOptions) {
+        const context = {
+            scope: this.#moduleScope,
+            exports: Object.create(null),
+        };
         this.#moduleEvaluationGenerator = createModuleEvaluationGenerator(
             source,
             parseResult,
-            this.#moduleScope,
+            context,
         );
-        this.#localNamespace = this.#moduleEvaluationGenerator
-            .generator.next().value;
+        this.#moduleEvaluationGenerator.generator.next();
+        this.#localNamespace = context.exports;
         this.#initializeImportMeta = initializeImportMeta;
         this.#importModuleDynamically = importModuleDynamically;
         this.#importEntries = importEntries;

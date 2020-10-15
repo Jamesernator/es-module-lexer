@@ -18,7 +18,7 @@ export type ModuleEvaluationGenerator
 export default function createModuleEvaluationGenerator(
     sourceText: string,
     parseResult: ParseResult,
-    scope: object,
+    context: { scope: object, exports: any },
 ): ModuleEvaluationGenerator {
     const nameGenerator = new NameGenerator(sourceText);
     const defaultExportName = nameGenerator.createName("default");
@@ -76,22 +76,26 @@ export default function createModuleEvaluationGenerator(
     ];
     const transformedSource = replaceRanges(sourceText, replacements);
 
+    const contextName = nameGenerator.createName("context");
+
     // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval
     const genFunction = new Function(`
-        with (arguments[0]) {
+        const ${ contextName } = arguments[0];
+        with (${ contextName }.scope) {
             return function*() {
                 "use strict";
-                yield {
+                ${ contextName }.exports = {
                     __proto__: null,
                     ${ getters.join(",") }
                 };
+                yield;
                 ${ transformedSource }
             }();
         }
     `);
 
     return {
-        generator: genFunction(scope),
+        generator: genFunction(context),
         importMetaName,
         dynamicImportName,
     };
