@@ -1,10 +1,11 @@
+import { NAMESPACE } from "./Module.js";
 
 export type Import = {
     startPosition: number,
     endPosition: number,
     specifier: string,
     imports: Array<{
-        importName: string,
+        importName: string | typeof NAMESPACE,
         localName: string,
     }>,
 };
@@ -26,8 +27,8 @@ export type Export = {
     endPosition: number,
     specifier: string | null,
     exports: Array<{
-        importName: string,
-        exportName: string,
+        importName: string | typeof NAMESPACE,
+        exportName: string | typeof NAMESPACE,
     }>,
 };
 
@@ -61,7 +62,7 @@ export default async function parse(code: string): Promise<ParseResult> {
     let openImport: null | {
         startPosition: number,
         imports: Array<{
-            importName: string,
+            importName: string | typeof NAMESPACE,
             localName: string,
         }>,
     } = null;
@@ -69,8 +70,8 @@ export default async function parse(code: string): Promise<ParseResult> {
     let openExport: null | {
         startPosition: number,
         exports: Array<{
-            importName: string,
-            exportName: string,
+            importName: string | typeof NAMESPACE,
+            exportName: string | typeof NAMESPACE,
         }>,
     } = null;
 
@@ -92,15 +93,27 @@ export default async function parse(code: string): Promise<ParseResult> {
             emitImportName(
                 importNameStart: number,
                 importNameLength: number,
-                asNameStart: number,
-                asNameLength: number,
+                localNameStart: number,
+                localNameLength: number,
             ) {
                 if (!openImport) {
                     throw new Error("Emitted name without import");
                 }
                 openImport.imports.push({
-                    importName: readIdentifier(importNameStart, importNameLength),
-                    localName: readIdentifier(asNameStart, asNameLength),
+                    importName: readName(importNameStart, importNameLength),
+                    localName: readIdentifier(localNameStart, localNameLength),
+                });
+            },
+            emitImportNamespace(
+                localNameStart: number,
+                localNameLength: number,
+            ) {
+                if (!openImport) {
+                    throw new Error("Emitted name without import");
+                }
+                openImport.imports.push({
+                    importName: NAMESPACE,
+                    localName: readIdentifier(localNameStart, localNameLength),
                 });
             },
             finalizeImport(
@@ -114,10 +127,10 @@ export default async function parse(code: string): Promise<ParseResult> {
                 imports.push({
                     startPosition: openImport.startPosition,
                     endPosition,
-                    // eslint-disable-next-line no-eval, no-useless-call
-                    specifier: eval.call(null, `${
-                        readString(specifierStart, specifierLength)
-                    }`),
+                    specifier: readStringLiteral(
+                        specifierStart,
+                        specifierLength,
+                    ),
                     imports: openImport.imports,
                 });
                 openImport = null;
@@ -153,22 +166,43 @@ export default async function parse(code: string): Promise<ParseResult> {
             emitExportName(
                 importNameStart: number,
                 importNameLength: number,
-                asNameStart: number,
-                asNameLength: number,
+                exportNameStart: number,
+                exportNameLength: number,
             ) {
                 if (!openExport) {
                     throw new Error("Emitted export name without opening");
                 }
                 openExport.exports.push({
-                    importName: readIdentifier(importNameStart, importNameLength),
-                    exportName: readIdentifier(asNameStart, asNameLength),
+                    importName: readName(importNameStart, importNameLength),
+                    exportName: readName(exportNameStart, exportNameLength),
+                });
+            },
+            emitExportNamespaceAsName(
+                exportNameStart: number,
+                exportNameLength: number,
+            ) {
+                if (!openExport) {
+                    throw new Error("Emitted export name without opening");
+                }
+                openExport.exports.push({
+                    importName: NAMESPACE,
+                    exportName: readName(exportNameStart, exportNameLength),
+                });
+            },
+            emitExportNamespace() {
+                if (!openExport) {
+                    throw new Error("Emitted export name without opening");
+                }
+                openExport.exports.push({
+                    importName: NAMESPACE,
+                    exportName: NAMESPACE,
                 });
             },
             finalizeExport(
                 endPosition: number,
             ) {
                 if (!openExport) {
-                    throw new Error("Emitted import without opening");
+                    throw new Error("Emitted export without opening");
                 }
                 exports.push({
                     startPosition: openExport.startPosition,
@@ -184,15 +218,15 @@ export default async function parse(code: string): Promise<ParseResult> {
                 specifierLength: number,
             ) {
                 if (!openExport) {
-                    throw new Error("Emitted import without opening");
+                    throw new Error("Emitted export without opening");
                 }
                 exports.push({
                     startPosition: openExport.startPosition,
                     endPosition,
-                    // eslint-disable-next-line no-eval, no-useless-call
-                    specifier: eval.call(null, `${
-                        readString(specifierStart, specifierLength)
-                    }`),
+                    specifier: readStringLiteral(
+                        specifierStart,
+                        specifierLength,
+                    ),
                     exports: openExport.exports,
                 });
                 openExport = null;
@@ -215,6 +249,25 @@ export default async function parse(code: string): Promise<ParseResult> {
 
     function readIdentifier(start: number, length: number) {
         const string = readString(start, length);
+        return JSON.parse(`"${ string }"`);
+    }
+
+    function readStringLiteral(start: number, length: number) {
+        const stringLiteral = readString(start, length);
+        const withQuotesReplaced = stringLiteral
+            .slice(1, -1)
+            .replace(/"/ug, `\\"`);
+        return JSON.parse(`"${ withQuotesReplaced }"`);
+    }
+
+    function readName(start: number, length: number) {
+        const string = readString(start, length);
+        if (string.startsWith(`'`) || string.startsWith(`"`)) {
+            const withQuotesReplaced = string
+                .slice(1, -1)
+                .replace(/"/ug, `\\"`);
+            return JSON.parse(`"${ withQuotesReplaced }"`);
+        }
         return JSON.parse(`"${ string }"`);
     }
 

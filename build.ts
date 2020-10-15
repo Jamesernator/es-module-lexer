@@ -4,6 +4,7 @@ import sh from "shelljs";
 sh.rm("-rf", "./dist/");
 sh.mkdir("./dist/");
 sh.rm("./.tsbuildinfo");
+sh.set("-e");
 sh.exec("make all");
 sh.exec("./node_modules/.bin/tsc --project ./tsconfig.build.json");
 

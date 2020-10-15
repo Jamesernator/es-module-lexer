@@ -1,27 +1,23 @@
-import CyclicModule, { ResolveModule } from "./CyclicModule.js";
-import { AMBIGUOUS, NAMESPACE, ResolvedExport, ResolveSet } from "./Module.js";
-import type Module from "./Module.js";
-import ModuleEvaluator from "./ModuleEvaluator.js";
-import parse, { Export, ParseResult } from "./parse.js";
+import type { ResolveModule } from "./CyclicModule.js";
+import CyclicModule from "./CyclicModule.js";
+import GeneratorModuleEvaluator from "./GeneratorModuleEvaluator.js";
+import Module, { AMBIGUOUS, NAMESPACE } from "./Module.js";
+import type {
+    ResolvedExport,
+    ResolveSet,
+} from "./Module.js";
+import getModuleEntries from "./getModuleEntries.js";
+import parse from "./parse.js";
 
-export type InitializeImportMeta
-    = (importMeta: any, module: SourceTextModule) => void;
-
-export type ImportModuleDynamically
-    = (specifier: string, module: SourceTextModule) => Module | Promise<Module>;
-
-export type SourceTextModuleOptions = {
-    source: string,
-    resolveModule: ResolveModule,
-    initializeImportMeta?: InitializeImportMeta,
-    importModuleDynamically?: ImportModuleDynamically,
-};
-
-const KEY = Symbol("key");
+export interface ModuleEvaluator {
+    initialize: (linkedModules: Map<string, Module>) => void;
+    execute: (linkedModules: Map<string, Module>) => void;
+    getLocalBinding: (name: string) => () => any;
+}
 
 export type ImportEntry = {
     specifier: string,
-    importName: string,
+    importName: string | typeof NAMESPACE,
     localName: string,
 };
 
@@ -32,7 +28,7 @@ export type LocalExportEntry = {
 
 export type IndirectExportEntry = {
     specifier: string,
-    importName: string,
+    importName: string | typeof NAMESPACE,
     exportName: string,
 };
 
@@ -40,40 +36,49 @@ export type StarExportEntry = {
     specifier: string,
 };
 
-type EntriesLists = {
+export type SourceTextModuleOptions = {
+    source: string,
     importEntries: Array<ImportEntry>,
     localExportEntries: Array<LocalExportEntry>,
     indirectExportEntries: Array<IndirectExportEntry>,
     starExportEntries: Array<StarExportEntry>,
+    moduleEvaluator: ModuleEvaluator,
+    requestedModules: Array<string>,
+    resolveModule: ResolveModule,
+};
+
+export type InitializeImportMeta
+    = (importMeta: any, module: SourceTextModule) => void;
+
+export type ImportModuleDynamically
+    = (specifier: string, module: SourceTextModule) => Module | Promise<Module>;
+
+export type SourceTextModuleCreationOptions = {
+    source: string,
+    resolveModule: ResolveModule,
+    initializeImportMeta?: InitializeImportMeta,
+    importModuleDynamically?: ImportModuleDynamically,
 };
 
 export default class SourceTextModule extends CyclicModule {
-    static async create(
-        options: SourceTextModuleOptions,
-    ): Promise<SourceTextModule> {
-        const parseResult = await parse(options.source);
-        return new SourceTextModule(KEY, parseResult, options);
+    static isSourceTextModule(value: any | any): value is SourceTextModule {
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+            value.#source;
+            return true;
+        } catch {
+            return false;
+        }
     }
 
-    readonly #source: string;
-    readonly #localExportEntries: Array<LocalExportEntry>;
-    readonly #indirectExportEntries: Array<IndirectExportEntry>;
-    readonly #starExportEntries: Array<StarExportEntry>;
-    readonly #moduleEvaluator: ModuleEvaluator;
-
-    private constructor(
-        key: typeof KEY,
-        parseResult: ParseResult,
-        {
-            source,
-            resolveModule,
-            initializeImportMeta,
-            importModuleDynamically,
-        }: SourceTextModuleOptions,
-    ) {
-        if (key !== KEY) {
-            throw new Error("Use SourceTextModule.create() instead");
-        }
+    static async create({
+        source,
+        resolveModule,
+        importModuleDynamically,
+        initializeImportMeta,
+    }: SourceTextModuleCreationOptions): Promise<SourceTextModule> {
+        const parseResult = await parse(source);
+        const moduleEntries = getModuleEntries(parseResult);
         const requestedModules = [
             ...parseResult.imports,
             ...parseResult.exports,
@@ -84,119 +89,70 @@ export default class SourceTextModule extends CyclicModule {
             });
 
         const uniqueRequestedModules = [...new Set(requestedModules)];
-
-        super({
-            requestedModules: uniqueRequestedModules,
-            resolveModule,
-            initializeEnvironment: (...args) => {
-                return this.#initalizeEnvironment(...args);
-            },
-            executeModule: (linkedModules: Map<string, Module>) => {
-                return this.#executeModule(linkedModules);
-            },
-            getExportedNames: (...args) => this.#getExportedNames(...args),
-            resolveExport: (...args) => this.#resolveExport(...args),
-        });
-        this.#source = source;
-        const {
-            importEntries,
-            localExportEntries,
-            indirectExportEntries,
-            starExportEntries,
-        } = this.#getEntries(parseResult);
-        this.#localExportEntries = localExportEntries;
-        this.#indirectExportEntries = indirectExportEntries;
-        this.#starExportEntries = starExportEntries;
-        this.#moduleEvaluator = new ModuleEvaluator({
+        const moduleEvaluator: ModuleEvaluator = new GeneratorModuleEvaluator({
             source,
             parseResult,
+            importEntries: moduleEntries.importEntries,
+            indirectExportEntries: moduleEntries.indirectExportEntries,
             initializeImportMeta: (importMeta) => {
-                initializeImportMeta?.(importMeta, this);
+                // eslint-disable-next-line @typescript-eslint/no-use-before-define
+                initializeImportMeta?.(importMeta, module);
             },
             importModuleDynamically: (specifier) => {
                 if (typeof importModuleDynamically === "function") {
-                    return importModuleDynamically(specifier, this);
+                    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+                    return importModuleDynamically(specifier, module);
                 }
                 throw new Error(
                     "No importModuleDynamically hook implemented",
                 );
             },
-            importEntries,
         });
-
-        Object.freeze(this);
+        const module = new SourceTextModule({
+            source,
+            ...moduleEntries,
+            requestedModules: uniqueRequestedModules,
+            resolveModule,
+            moduleEvaluator,
+        });
+        return module;
     }
 
-    #getEntries = (parseResult: ParseResult): EntriesLists => {
-        const importEntries: Array<ImportEntry> = parseResult.imports
-            .flatMap((i) => {
-                return i.imports
-                    .map(({ importName, localName }) => ({
-                        specifier: i.specifier,
-                        importName,
-                        localName,
-                    }));
-            });
-        const importedBoundNames = new Set(
-            importEntries.map((i) => i.localName),
-        );
-        const indirectExportEntries: Array<IndirectExportEntry> = [];
-        const localExportEntries: Array<LocalExportEntry> = [];
-        const starExportEntries: Array<StarExportEntry> = [];
+    readonly #source: string;
+    readonly #localExportEntries: Array<LocalExportEntry>;
+    readonly #indirectExportEntries: Array<IndirectExportEntry>;
+    readonly #starExportEntries: Array<StarExportEntry>;
+    readonly #moduleEvaluator: ModuleEvaluator;
 
-        function addEntry(
-            exportEntry: Export,
-            name: string,
-            asName: string,
-        ): void {
-            if (exportEntry.specifier === null) {
-                if (!importedBoundNames.has(name)) {
-                    localExportEntries.push({
-                        localName: name,
-                        exportName: asName,
-                    });
-                    return;
-                }
-                const importEntry = importEntries
-                    .find((i) => i.localName === name)!;
-                if (importEntry.importName === "*") {
-                    localExportEntries.push({
-                        localName: name,
-                        exportName: asName,
-                    });
-                } else {
-                    indirectExportEntries.push({
-                        specifier: importEntry.specifier,
-                        importName: importEntry.localName,
-                        exportName: asName,
-                    });
-                }
-            } else if (name === "*" && asName === "*") {
-                starExportEntries.push({
-                    specifier: exportEntry.specifier,
-                });
-            } else {
-                indirectExportEntries.push({
-                    specifier: exportEntry.specifier,
-                    importName: name,
-                    exportName: asName,
-                });
-            }
-        }
-
-        for (const exportEntry of parseResult.exports) {
-            for (const { importName, exportName } of exportEntry.exports) {
-                addEntry(exportEntry, importName, exportName);
-            }
-        }
-
-        return {
-            importEntries,
-            localExportEntries,
-            indirectExportEntries,
-            starExportEntries,
-        };
-    };
+    constructor({
+        source,
+        localExportEntries,
+        indirectExportEntries,
+        starExportEntries,
+        moduleEvaluator,
+        requestedModules,
+        resolveModule,
+    }: SourceTextModuleOptions) {
+        const uniqueRequestedModules = [...new Set(requestedModules)];
+        super({
+            requestedModules: uniqueRequestedModules,
+            resolveModule,
+            initializeEnvironment: (linkedModules: Map<string, Module>) => {
+                return moduleEvaluator.initialize(linkedModules);
+            },
+            executeModule: (linkedModules: Map<string, Module>) => {
+                return moduleEvaluator.execute(linkedModules);
+            },
+            getExportedNames: (...args) => this.#getExportedNames(...args),
+            resolveExport: (...args) => this.#resolveExport(...args),
+        });
+        this.#source = source;
+        this.#localExportEntries = localExportEntries;
+        this.#indirectExportEntries = indirectExportEntries;
+        this.#starExportEntries = starExportEntries;
+        this.#moduleEvaluator = moduleEvaluator;
+        Object.freeze(this);
+    }
 
     #getExportedNames = (
         linkedModules: Map<string, Module>,
@@ -215,7 +171,10 @@ export default class SourceTextModule extends CyclicModule {
         }
         for (const exportEntry of this.#starExportEntries) {
             const requestedModule = linkedModules.get(exportEntry.specifier)!;
-            const starNames = requestedModule.getExportedNames(exportStarSet);
+            const starNames = Module.getExportedNames(
+                requestedModule,
+                exportStarSet,
+            );
             for (const name of starNames) {
                 if (name !== "default") {
                     exportedNames.add(name);
@@ -241,10 +200,8 @@ export default class SourceTextModule extends CyclicModule {
                 return {
                     module: this,
                     bindingName: exportEntry.localName,
-                    getBinding: () => {
-                        return this.#moduleEvaluator
-                            .localNamespace[exportEntry.exportName];
-                    },
+                    getBinding: this.#moduleEvaluator
+                        .getLocalBinding(exportEntry.exportName),
                 };
             }
         }
@@ -252,15 +209,16 @@ export default class SourceTextModule extends CyclicModule {
             if (exportEntry.exportName === exportName) {
                 const importedModule = linkedModules
                     .get(exportEntry.specifier)!;
-                if (exportEntry.importName === "*") {
+                if (exportEntry.importName === NAMESPACE) {
                     return {
                         module: this,
                         bindingName: NAMESPACE,
-                        getBinding: () => importedModule.namespace,
+                        getBinding: () => Module.namespace(importedModule),
                     };
                 }
 
-                return importedModule.resolveExport(
+                return Module.resolveExport(
+                    importedModule,
                     exportEntry.importName,
                     resolveSet,
                 );
@@ -273,7 +231,8 @@ export default class SourceTextModule extends CyclicModule {
         for (const exportEntry of this.#starExportEntries) {
             const importedModule = linkedModules
                 .get(exportEntry.specifier)!;
-            const resolution = importedModule.resolveExport(
+            const resolution = Module.resolveExport(
+                importedModule,
                 exportName,
                 resolveSet,
             );
@@ -290,14 +249,6 @@ export default class SourceTextModule extends CyclicModule {
             }
         }
         return starResolution;
-    };
-
-    #initalizeEnvironment = (linkedModules: Map<string, Module>): void => {
-        this.#moduleEvaluator.initialize(linkedModules);
-    };
-
-    #executeModule = (linkedModules: Map<string, Module>): void => {
-        this.#moduleEvaluator.evaluate(linkedModules);
     };
 
     get source(): string {

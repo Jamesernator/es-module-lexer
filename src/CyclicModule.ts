@@ -107,7 +107,7 @@ export default class CyclicModule extends Module {
         index: number,
     ): Promise<number> => {
         if (!CyclicModule.isCyclicModule(module)) {
-            await module.link();
+            await Module.link(module);
             return index;
         }
         if (module.#status.name === "linking"
@@ -196,7 +196,7 @@ export default class CyclicModule extends Module {
         index: number,
     ): number => {
         if (!CyclicModule.isCyclicModule(module)) {
-            module.evaluate();
+            Module.evaluate(module);
             return index;
         }
         if (module.#status.name === "evaluated") {

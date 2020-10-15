@@ -8,7 +8,7 @@ typedef struct {
     int32_t length;
 } String;
 
-//* 
+/* 
 extern void _consoleLog(int32_t start, int32_t length);
 extern void _consoleLogInt(int32_t n);
 void consoleLog(String message) {
@@ -164,6 +164,7 @@ void tokenize(ParserState* state, EndWhen endWhen);
 void consumePunctuator(ParserState* state);
 void consumeRegularExpression(ParserState* state);
 String consumeSequence(ParserState* state);
+String consumeSequenceOrStringLiteral(ParserState* state);
 
 void consumeLineComment(ParserState* state) {
     state->position += 1;
@@ -320,8 +321,12 @@ extern void openImport(int32_t startPosition);
 extern void emitImportName(
     int32_t importNameStartPosition,
     int32_t importNameLength,
-    int32_t asNameStartPosition,
-    int32_t asNameLength
+    int32_t localNameStartPosition,
+    int32_t localNameLength
+);
+extern void emitImportNamespace(
+    int32_t localNameStartPosition,
+    int32_t localNameLength
 );
 extern void finalizeImport(
     int32_t endPosition,
@@ -339,11 +344,15 @@ extern void emitImportMeta(
     int32_t endPosition
 );
 
-void _emitImportName(String importName, String asName) {
+void _emitImportName(String importName, String localName) {
     emitImportName(
         (int32_t)importName.start, importName.length,
-        (int32_t)asName.start, asName.length
+        (int32_t)localName.start, localName.length
     );
+}
+
+void _emitImportNamespace(String localName) {
+    emitImportNamespace((int32_t)localName.start, localName.length);
 }
 
 void _finalizeImport(int32_t endPosition, String specifier) {
@@ -366,15 +375,15 @@ void consumeNamedImports(ParserState* state) {
     while (state->position < state->code.length
     && peekChar(state) != '}') {
         consumeWhitespaceAndComments(state);
-        String importedName = consumeSequence(state);
+        String importName = consumeSequenceOrStringLiteral(state);
         consumeWhitespaceAndComments(state);
         if (!isPunctuator(peekChar(state))) {
             consumeSequence(state);
             consumeWhitespaceAndComments(state);
-            String importedAsName = consumeSequence(state);
-            _emitImportName(importedName, importedAsName);
+            String localName = consumeSequence(state);
+            _emitImportName(importName, localName);
         } else {
-            _emitImportName(importedName, importedName);
+            _emitImportName(importName, importName);
         }
 
         consumeWhitespaceAndComments(state);
@@ -441,7 +450,7 @@ void consumeImport(ParserState* state) {
     if (peekChar(state) == '{') {
         consumeNamedImports(state);
     } else if (peekChar(state) == '*') {
-        _emitImportName(s(u"*"), consumeNamespaceImport(state));
+        _emitImportNamespace(consumeNamespaceImport(state));
     } else {
         String defaultName = consumeSequence(state);
         _emitImportName(s(u"default"), defaultName);
@@ -450,7 +459,7 @@ void consumeImport(ParserState* state) {
             consumePunctuator(state);
             consumeWhitespaceAndComments(state);
             if (peekChar(state) == '*') {
-                _emitImportName(s(u"*"), consumeNamespaceImport(state));
+                _emitImportNamespace(consumeNamespaceImport(state));
             } else if (peekChar(state) == '{') {
                 consumeNamedImports(state);
             } else {
@@ -487,9 +496,19 @@ String consumeSequence(ParserState* state) {
     && peekChar(state) != '\'' && peekChar(state) != '"') {
         state->position += 1;
     }
+    if (state->position == startPosition) {
+        raiseSyntaxError(s(u"Expected a character sequence but got nothing"));
+    }
     addToken(state, SEQUENCE, startPosition, state->position);
     String sequence = state->lastToken;
     return sequence;
+}
+
+String consumeSequenceOrStringLiteral(ParserState* state) {
+    if (peekChar(state) == '\'' || peekChar(state) == '"') {
+        return consumeStringLiteral(state);
+    }
+    return consumeSequence(state);
 }
 
 void consumeCharacterClass(ParserState* state) {
@@ -533,9 +552,14 @@ extern void openExport(int32_t startPosition);
 extern void emitExportName(
     int32_t exportNameStartPosition,
     int32_t exportNameLength,
-    int32_t asNameStartPosition,
-    int32_t asNameLength
+    int32_t localNameStartPosition,
+    int32_t localNameLength
 );
+extern void emitExportNamespaceAsName(
+    int32_t exportNameStart,
+    int32_t exportNameLength
+);
+extern void emitExportNamespace();
 extern void finalizeExport(
     int32_t endPosition
 );
@@ -545,11 +569,15 @@ extern void finalizeDelegatedExport(
     int32_t specifierLength
 );
 
-void _emitExportName(String importName, String asName) {
+void _emitExportName(String importName, String localName) {
     emitExportName(
         (int32_t)importName.start, importName.length,
-        (int32_t)asName.start, asName.length
+        (int32_t)localName.start, localName.length
     );
+}
+
+void _emitExportNamespaceAsName(String exportName) {
+    emitExportNamespaceAsName((int32_t)exportName.start, exportName.length);
 }
 
 void _finalizeDelegatedExport(int32_t endPosition, String specifier) {
@@ -584,19 +612,20 @@ String consumeExportClass(state) {
 
 void consumeNamedExports(ParserState* state) {
     consumePunctuator(state);
+    consumeWhitespaceAndComments(state);
 
     while (state->position < state->code.length
     && peekChar(state) != '}') {
         consumeWhitespaceAndComments(state);
-        String exportedName = consumeSequence(state);
+        String importName = consumeSequenceOrStringLiteral(state);
         consumeWhitespaceAndComments(state);
         if (!isPunctuator(peekChar(state))) {
             consumeSequence(state);
             consumeWhitespaceAndComments(state);
-            String exportedAsName = consumeSequence(state);
-            _emitExportName(exportedName, exportedAsName);
+            String exportName = consumeSequenceOrStringLiteral(state);
+            _emitExportName(importName, exportName);
         } else {
-            _emitExportName(exportedName, exportedName);
+            _emitExportName(importName, importName);
         }
 
         consumeWhitespaceAndComments(state);
@@ -627,19 +656,19 @@ void consumeExport(ParserState* state) {
     || stringEqual(peekSequence(state), s(u"var"))) {
         consumeSequence(state);
         consumeWhitespaceAndComments(state);
-        String exportedName = consumeSequence(state);
-        _emitExportName(exportedName, exportedName);
+        String importName = consumeSequence(state);
+        _emitExportName(importName, importName);
         finalizeExport(startPosition + 6);
         return;
     } else if (stringEqual(peekSequence(state), s(u"async"))
     || stringEqual(peekSequence(state), s(u"function"))) {
-        String exportedName = consumeExportFunction(state);
-        _emitExportName(exportedName, exportedName);
+        String importName = consumeExportFunction(state);
+        _emitExportName(importName, importName);
         finalizeExport(startPosition + 6);
         return;
     } else if (stringEqual(peekSequence(state), s(u"class"))) {
-        String exportedName = consumeExportClass(state);
-        _emitExportName(exportedName, exportedName);
+        String importName = consumeExportClass(state);
+        _emitExportName(importName, importName);
         finalizeExport(startPosition + 6);
     } else if (peekChar(state) == '{') {
         consumeNamedExports(state);
@@ -661,18 +690,18 @@ void consumeExport(ParserState* state) {
             consumeSequence(state); // from
             consumeWhitespaceAndComments(state);
             String specifier = consumeStringLiteral(state);
-            _emitExportName(s(u"*"), s(u"*"));
+            emitExportNamespace();
             _finalizeDelegatedExport(state->position, specifier);
         // export * as ID from "mod"
         } else {
             consumeSequence(state); // as
             consumeWhitespaceAndComments(state);
-            String exportAsName = consumeSequence(state);
+            String exportName = consumeSequenceOrStringLiteral(state);
             consumeWhitespaceAndComments(state);
             consumeSequence(state); // from
             consumeWhitespaceAndComments(state);
             String specifier = consumeStringLiteral(state);
-            _emitExportName(s(u"*"), exportAsName);
+            _emitExportNamespaceAsName(exportName);
             _finalizeDelegatedExport(state->position, specifier);
         }
     } else if (stringEqual(peekSequence(state), s(u"default"))) {

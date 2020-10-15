@@ -17,7 +17,6 @@ const MODULE_SHIM = new vm.Script(await fs.readFile(MODULE_SHIM_URL, "utf8"), {
     filename: fileURLToPath(MODULE_SHIM_URL),
 });
 
-
 async function runTest(file: string): Promise<"success" | "skipped"> {
     const content = await fs.readFile(file, "utf8");
     const config = parseTestComment(content);
@@ -39,6 +38,8 @@ async function runTest(file: string): Promise<"success" | "skipped"> {
         await testContext.includeHarnessFile(includedFile);
     }
 
+    // eslint-disable-next-line require-atomic-updates
+    testContext.globalThis.console = console;
     testContext.runScript(MODULE_SHIM);
     const moduleShim = testContext.globalThis.ModuleShim as typeof ModuleShim;
     const loader = new PathLoader(moduleShim);
@@ -119,6 +120,7 @@ async function runTests() {
             }
         }
     }
+    console.log(chalk.green(`✔✔✔ All tests complete`));
 }
 
 await runTests();

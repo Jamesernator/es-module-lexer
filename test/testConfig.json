@@ -8,6 +8,14 @@
     "allowedFailures": [
         {
             "files": [
+                "language/module-code/export-expname-from-binding-string.js"
+            ],
+            "reason": "Broken test",
+            "expectedError": "SyntaxError",
+            "possibleImpact": "N/A"
+        },
+        {
+            "files": [
                 "language/module-code/eval-export-dflt-cls-anon-semi.js",
                 "language/module-code/eval-export-dflt-fun-anon-semi.js",
                 "language/module-code/eval-export-dflt-gen-anon-semi.js",

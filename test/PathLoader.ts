@@ -29,10 +29,10 @@ export default class PathLoader {
         return module;
     };
 
-    resolve(
+    #normalizePath = (
         modulePath: string,
         parentModule?: ModuleShim.Module,
-    ): Promise<ModuleShim.Module> {
+    ): string => {
         if (parentModule === undefined) {
             if (!path.isAbsolute(modulePath)) {
                 throw new Error(`modulePath must be absolute if no parent module is specified`);
@@ -44,7 +44,14 @@ export default class PathLoader {
             }
             modulePath = path.join(path.dirname(basePath), modulePath);
         }
-        modulePath = path.normalize(modulePath);
+        return path.normalize(modulePath);
+    };
+
+    resolve(
+        modulePath: string,
+        parentModule?: ModuleShim.Module,
+    ): Promise<ModuleShim.Module> {
+        modulePath = this.#normalizePath(modulePath, parentModule);
         const resolvedModule = this.#resolvedModules.get(modulePath);
         if (resolvedModule) {
             return resolvedModule;
