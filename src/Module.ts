@@ -43,6 +43,10 @@ export default abstract class Module {
         return module.#isEvaluated;
     }
 
+    static isLinked(module: Module): boolean {
+        return module.#isLinked;
+    }
+
     static namespace(module: Module): any {
         return module.#getModuleNamespace();
     }
@@ -63,11 +67,17 @@ export default abstract class Module {
     }
 
     static async link(module: Module): Promise<void> {
-        return await module.#link();
+        await module.#link();
+        // eslint-disable-next-line require-atomic-updates
+        module.#isLinked = true;
     }
 
     static evaluate(module: Module): void {
-        return module.#evaluate();
+        if (!Module.isLinked(module)) {
+            throw new Error("Module must be linked before evaluation");
+        }
+        module.#evaluate();
+        module.#isEvaluated = true;
     }
 
     readonly #link: () => void | Promise<void>;
@@ -75,6 +85,7 @@ export default abstract class Module {
     readonly #getExportedNames: GetExportedNames;
     readonly #resolveExport: ResolveExport;
     #namespace?: Record<string, any> = undefined;
+    #isLinked = false;
     #isEvaluated = false;
 
     constructor({
@@ -119,30 +130,26 @@ export default abstract class Module {
     };
 
     get namespace(): any {
-        return this.#getModuleNamespace();
+        return Module.namespace(this);
     }
 
     getExportedNames(exportStarSet: Set<Module>=new Set()): Array<string> {
-        return this.#getExportedNames(exportStarSet);
+        return Module.getExportedNames(this, exportStarSet);
     }
 
     resolveExport(
         exportName: string,
         resolveSet: ResolveSet=[],
     ): ResolvedExport {
-        return this.#resolveExport(exportName, resolveSet);
+        return Module.resolveExport(this, exportName, resolveSet);
     }
 
     async link(): Promise<void> {
-        if (this.#isEvaluated) {
-            return;
-        }
-        await this.#link();
+        return await Module.link(this);
     }
 
     evaluate(): void {
-        this.#evaluate();
-        this.#isEvaluated = true;
+        return Module.evaluate(this);
     }
 }
 
