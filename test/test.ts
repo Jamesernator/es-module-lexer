@@ -64,13 +64,13 @@ async function runTest(file: string): Promise<"success" | "skipped"> {
             if (isAsync) {
                 await done;
             }
-        } catch (err) {
+        } catch (err: unknown) {
             if (config.negative?.phase === "runtime") {
                 return "success";
             }
             throw err;
         }
-    } catch (err) {
+    } catch (err: any) {
         if (config.negative?.phase === "resolution"
         && config.negative.type === err?.constructor.name) {
             return "success";
@@ -105,7 +105,7 @@ async function runTests() {
             if (result !== "skipped") {
                 console.log(chalk.green(`✔ ${ relativeTestFile }`));
             }
-        } catch (err) {
+        } catch (err: any) {
             const allowedFailure = testConfig.allowedFailures
                 .find((allowedFailure) => {
                     return allowedFailure.files

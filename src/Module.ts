@@ -1,3 +1,4 @@
+import assert from "./assert.js";
 import createModuleNamespace from "./createModuleNamespace.js";
 
 export type GetExportedNames = (exportStarSet: Set<Module>) => Array<string>;
@@ -23,7 +24,7 @@ export type ResolveExport
 
 export type ModuleOptions = {
     link: () => void | Promise<void>,
-    evaluate: () => void,
+    evaluate: () => void | Promise<void>,
     getExportedNames: GetExportedNames,
     resolveExport: ResolveExport,
 };
@@ -72,16 +73,17 @@ export default abstract class Module {
         module.#isLinked = true;
     }
 
-    static evaluate(module: Module): void {
+    static async evaluate(module: Module): Promise<void> {
         if (!Module.isLinked(module)) {
             throw new Error("Module must be linked before evaluation");
         }
-        module.#evaluate();
+        await module.#evaluate();
+        // eslint-disable-next-line require-atomic-updates
         module.#isEvaluated = true;
     }
 
     readonly #link: () => void | Promise<void>;
-    readonly #evaluate: () => void;
+    readonly #evaluate: () => void | Promise<void>;
     readonly #getExportedNames: GetExportedNames;
     readonly #resolveExport: ResolveExport;
     #namespace?: Record<string, any> = undefined;
@@ -148,8 +150,8 @@ export default abstract class Module {
         return await Module.link(this);
     }
 
-    evaluate(): void {
-        return Module.evaluate(this);
+    async evaluate(): Promise<void> {
+        return await Module.evaluate(this);
     }
 }
 

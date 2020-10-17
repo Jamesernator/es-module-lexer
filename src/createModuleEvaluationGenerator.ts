@@ -5,15 +5,41 @@ import replaceRanges from "./replaceRanges.js";
 import type { RangeReplacement } from "./replaceRanges.js";
 
 type SyncModuleEvaluationGenerator = {
-    // isAsync: false,
+    isAsync: false,
     generator: Generator<any, any, any>,
     importMetaName: string,
     dynamicImportName: string,
 };
 
+type AsyncModuleEvaluationGenerator = {
+    isAsync: true,
+    generator: AsyncGenerator<any, any, any>,
+    importMetaName: string,
+    dynamicImportName: string,
+};
+
 export type ModuleEvaluationGenerator
-    = SyncModuleEvaluationGenerator;
-    // | AsyncModuleEvaulationGenerator
+    = SyncModuleEvaluationGenerator
+    | AsyncModuleEvaluationGenerator;
+
+interface AsyncFunctionConstructor {
+    new (...args: Array<string>): (...args: any) => Promise<any>;
+    (...args: Array<string>): (...args: any) => Promise<any>;
+}
+
+const AsyncFunction = (async () => null).constructor as AsyncFunctionConstructor;
+
+function isAsyncSource(transformedSource: string) {
+    try {
+        // eslint-disable-next-line no-new, no-new-func, @typescript-eslint/no-implied-eval
+        new Function(transformedSource);
+        return false;
+    } catch {
+        // eslint-disable-next-line no-new
+        new AsyncFunction(transformedSource);
+        return true;
+    }
+}
 
 export default function createModuleEvaluationGenerator(
     sourceText: string,
@@ -76,13 +102,15 @@ export default function createModuleEvaluationGenerator(
     ];
     const transformedSource = replaceRanges(sourceText, replacements);
 
+    const isAsync = isAsyncSource(transformedSource);
+
     const contextName = nameGenerator.createName("context");
 
     // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval
     const genFunction = new Function(`
         const ${ contextName } = arguments[0];
         with (${ contextName }.scope) {
-            return function*() {
+            return ${ isAsync ? "async" : "" } function*() {
                 "use strict";
                 ${ contextName }.exports = {
                     __proto__: null,
@@ -95,6 +123,7 @@ export default function createModuleEvaluationGenerator(
     `);
 
     return {
+        isAsync,
         generator: genFunction(context),
         importMetaName,
         dynamicImportName,

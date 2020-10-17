@@ -6,12 +6,14 @@ import type {
     ResolvedExport,
     ResolveSet,
 } from "./Module.js";
+import type ReadonlyMap from "./ReadonlyMap.js";
 import getModuleEntries from "./getModuleEntries.js";
 import parse from "./parse.js";
 
 export interface ModuleEvaluator {
-    initialize: (linkedModules: Map<string, Module>) => void;
-    execute: (linkedModules: Map<string, Module>) => void;
+    async: boolean;
+    initialize: (linkedModules: ReadonlyMap<string, Module>) => void;
+    execute: (linkedModules: ReadonlyMap<string, Module>) => void;
     getLocalBinding: (name: string) => () => any;
 }
 
@@ -37,6 +39,7 @@ export type StarExportEntry = {
 };
 
 export type SourceTextModuleOptions = {
+    async: boolean,
     source: string,
     importEntries: Array<ImportEntry>,
     localExportEntries: Array<LocalExportEntry>,
@@ -51,7 +54,7 @@ export type InitializeImportMeta
     = (importMeta: any, module: SourceTextModule) => void;
 
 export type ImportModuleDynamically
-    = (specifier: string, module: SourceTextModule) => Module | Promise<Module>;
+    = (specifier: string, module: SourceTextModule) => void | Promise<void>;
 
 export type SourceTextModuleCreationOptions = {
     source: string,
@@ -98,17 +101,28 @@ export default class SourceTextModule extends CyclicModule {
                 // eslint-disable-next-line @typescript-eslint/no-use-before-define
                 initializeImportMeta?.(importMeta, module);
             },
-            importModuleDynamically: (specifier) => {
-                if (typeof importModuleDynamically === "function") {
-                    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-                    return importModuleDynamically(specifier, module);
+            importModuleDynamically: async (specifier: any) => {
+                if (typeof importModuleDynamically !== "function") {
+                    throw new Error(
+                        "No importModuleDynamically hook implemented",
+                    );
                 }
-                throw new Error(
-                    "No importModuleDynamically hook implemented",
+                specifier = String(specifier);
+                // eslint-disable-next-line @typescript-eslint/no-use-before-define
+                await importModuleDynamically(specifier, module);
+                const importedModule = await CyclicModule.resolveModule(
+                    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+                    module,
+                    specifier,
                 );
+                if (Module.isEvaluated(importedModule)) {
+                    throw new Error("dynamically imported module must already be evaluated");
+                }
+                return importedModule.namespace;
             },
         });
         const module = new SourceTextModule({
+            async: moduleEvaluator.async,
             source,
             ...moduleEntries,
             requestedModules: uniqueRequestedModules,
@@ -125,6 +139,7 @@ export default class SourceTextModule extends CyclicModule {
     readonly #moduleEvaluator: ModuleEvaluator;
 
     constructor({
+        async,
         source,
         localExportEntries,
         indirectExportEntries,
@@ -135,12 +150,15 @@ export default class SourceTextModule extends CyclicModule {
     }: SourceTextModuleOptions) {
         const uniqueRequestedModules = [...new Set(requestedModules)];
         super({
+            async,
             requestedModules: uniqueRequestedModules,
             resolveModule,
-            initializeEnvironment: (linkedModules: Map<string, Module>) => {
+            initializeEnvironment: () => {
+                const linkedModules = CyclicModule.linkedModules(this);
                 return moduleEvaluator.initialize(linkedModules);
             },
-            executeModule: (linkedModules: Map<string, Module>) => {
+            executeModule: () => {
+                const linkedModules = CyclicModule.linkedModules(this);
                 return moduleEvaluator.execute(linkedModules);
             },
             getExportedNames: (...args) => this.#getExportedNames(...args),
@@ -155,9 +173,9 @@ export default class SourceTextModule extends CyclicModule {
     }
 
     #getExportedNames = (
-        linkedModules: Map<string, Module>,
         exportStarSet: Set<Module>,
     ): Array<string> => {
+        const linkedModules = CyclicModule.linkedModules(this);
         if (exportStarSet.has(this)) {
             return [];
         }
@@ -185,10 +203,10 @@ export default class SourceTextModule extends CyclicModule {
     };
 
     #resolveExport = (
-        linkedModules: Map<string, Module>,
         exportName: string,
         resolveSet: ResolveSet=[],
     ): ResolvedExport => {
+        const linkedModules = CyclicModule.linkedModules(this);
         for (const record of resolveSet) {
             if (record.module === this && record.exportName === exportName) {
                 return null;
