@@ -58,7 +58,7 @@ const mod = await SourceTextModule.create({
 });
 
 await mod.link(() => {});
-mod.evaluate(); // prints Hello world!
+await mod.evaluate(); // prints Hello world!
 ```
 
 ## `CyclicModule`
@@ -115,7 +115,7 @@ const mod2 = await SourceTextModule.create({
 // on imported modules
 await mod2.link();
 // Print some stuff
-mod2.evaluate();
+await mod2.evaluate();
 ```
 
 ## Building
