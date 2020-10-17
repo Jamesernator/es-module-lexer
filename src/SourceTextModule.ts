@@ -115,7 +115,7 @@ export default class SourceTextModule extends CyclicModule {
                     module,
                     specifier,
                 );
-                if (Module.isEvaluated(importedModule)) {
+                if (!Module.isEvaluated(importedModule)) {
                     throw new Error("dynamically imported module must already be evaluated");
                 }
                 return importedModule.namespace;

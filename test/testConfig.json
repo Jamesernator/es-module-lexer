@@ -2,6 +2,7 @@
     "files": [
         "language/module-code/*.js",
         "language/module-code/namespace/**/*.js",
+        "language/module-code/top-level-await/**/*.js",
         "language/expressions/dynamic-import/**/*.js",
         "language/expressions/import-meta/**/*.js"
     ],
@@ -70,6 +71,55 @@
             "expectedError": "*any*",
             "reason": "This behaviour requires detecting a module parsing error, which would require a full parse",
             "possibleImpact": "This impacts nobody who is using import() to import only module scripts"
+        },
+        {
+            "files": [
+                "language/module-code/top-level-await/await-expr-regexp.js"
+            ],
+            "expectedError": "ReferenceError",
+            "reason": "This requires detecting await /regexp/, which would require a full parse",
+            "possibleImpact": "The impact should be minimal as there is little reason to await a regexp literal, they can always wrap in a variable if neccessary"
+        },
+        {
+            "files": [
+                "language/module-code/top-level-await/syntax/block-await-expr-template-literal.js",
+                "language/module-code/top-level-await/syntax/export-class-decl-await-expr-template-literal.js",
+                "language/module-code/top-level-await/syntax/export-dflt-assign-expr-await-expr-template-literal.js",
+                "language/module-code/top-level-await/syntax/export-dft-class-decl-await-expr-template-literal.js",
+                "language/module-code/top-level-await/syntax/export-lex-decl-await-expr-template-literal.js",
+                "language/module-code/top-level-await/syntax/for-await-expr-template-literal.js",
+                "language/module-code/top-level-await/syntax/for-in-await-expr-template-literal.js",
+                "language/module-code/top-level-await/syntax/for-of-await-expr-template-literal.js",
+                "language/module-code/top-level-await/syntax/if-block-await-expr-template-literal.js",
+                "language/module-code/top-level-await/syntax/if-expr-await-expr-template-literal.js",
+                "language/module-code/top-level-await/syntax/top-level-await-expr-template-literal.js",
+                "language/module-code/top-level-await/syntax/try-await-expr-template-literal.js",
+                "language/module-code/top-level-await/syntax/typeof-await-expr-template-literal.js",
+                "language/module-code/top-level-await/syntax/void-await-expr-template-literal.js",
+                "language/module-code/top-level-await/syntax/while-await-expr-template-literal.js"
+            ],
+            "expectedError": "ReferenceError",
+            "reason": "This requires detecting await `template literal`, which would require a full parse",
+            "possibleImpact": "The impact should be minimal as there is little reason to await a template literal, they can always wrap in a variable if neccessary"
+        },
+        {
+            "files": [
+                "language/module-code/top-level-await/syntax/export-var-await-expr-array-literal.js",
+                "language/module-code/top-level-await/syntax/export-var-await-expr-func-expression.js",
+                "language/module-code/top-level-await/syntax/export-var-await-expr-identifier.js",
+                "language/module-code/top-level-await/syntax/export-var-await-expr-literal-number.js",
+                "language/module-code/top-level-await/syntax/export-var-await-expr-literal-string.js",
+                "language/module-code/top-level-await/syntax/export-var-await-expr-nested.js",
+                "language/module-code/top-level-await/syntax/export-var-await-expr-new-expr.js",
+                "language/module-code/top-level-await/syntax/export-var-await-expr-null.js",
+                "language/module-code/top-level-await/syntax/export-var-await-expr-obj-literal.js",
+                "language/module-code/top-level-await/syntax/export-var-await-expr-regexp.js",
+                "language/module-code/top-level-await/syntax/export-var-await-expr-template-literal.js",
+                "language/module-code/top-level-await/syntax/export-var-await-expr-this.js"
+            ],
+            "expectedError": "SyntaxError",
+            "reason": "This requires detecting destructuring assignment, which would require a full parse",
+            "possibleImpact": "The impact should be minimal as destructuring assignment in export is pretty uncommon already, and one can easily refactor to move the destructuring up"
         }
     ]
 }

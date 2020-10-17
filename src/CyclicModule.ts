@@ -522,7 +522,7 @@ export default class CyclicModule extends Module {
         } else {
             const value = this.#executeModule();
             assert(
-                value !== undefined,
+                value === undefined,
                 "executeModule for a synchronous module must not return a value",
             );
         }

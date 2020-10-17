@@ -1,4 +1,3 @@
-import assert from "./assert.js";
 import createModuleNamespace from "./createModuleNamespace.js";
 
 export type GetExportedNames = (exportStarSet: Set<Module>) => Array<string>;

@@ -32,11 +32,17 @@ const AsyncFunction = (async () => null).constructor as AsyncFunctionConstructor
 function isAsyncSource(transformedSource: string) {
     try {
         // eslint-disable-next-line no-new, no-new-func, @typescript-eslint/no-implied-eval
-        new Function(transformedSource);
+        new Function(`
+            "use strict";
+            ${ transformedSource }
+        `);
         return false;
     } catch {
         // eslint-disable-next-line no-new
-        new AsyncFunction(transformedSource);
+        new AsyncFunction(`
+            "use strict";
+            ${ transformedSource }
+        `);
         return true;
     }
 }

@@ -60,7 +60,7 @@ async function runTest(file: string): Promise<"success" | "skipped"> {
                     };
                 });
             }
-            module.evaluate();
+            await module.evaluate();
             if (isAsync) {
                 await done;
             }
