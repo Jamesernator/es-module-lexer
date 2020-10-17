@@ -8,14 +8,6 @@ typedef struct {
     int32_t length;
 } String;
 
-/* 
-extern void _consoleLog(int32_t start, int32_t length);
-extern void _consoleLogInt(int32_t n);
-void consoleLog(String message) {
-    _consoleLog(message.start, message.length);
-}
-//*/
-
 extern void syntaxError(int32_t start, int32_t length);
 
 void raiseSyntaxError(String string) {
@@ -607,7 +599,11 @@ String consumeExportClass(state) {
     if (isPunctuator(peekChar(state))) {
         return s(u"");
     }
-    return consumeSequence(state);
+    String seq = consumeSequence(state);
+    if (stringEqual(seq, s(u"extends"))) {
+        return s(u"");
+    }
+    return seq;
 }
 
 void consumeNamedExports(ParserState* state) {

@@ -19,10 +19,9 @@ export default class PathLoader {
                 return this.resolve(specifier, parent);
             },
             importModuleDynamically: async (specifier, parent) => {
-                const importedModule = await this.resolve(specifier, parent);
+                const importedModule = await parent.resolveModule(specifier);
                 await importedModule.link();
-                importedModule.evaluate();
-                return importedModule;
+                await importedModule.evaluate();
             },
         });
         this.#paths.set(module, modulePath);

@@ -16,7 +16,6 @@
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "useDefineForClassFields": true,
-    "importsNotUsedAsValues": "error",
-    "types": ["node"]
+    "importsNotUsedAsValues": "error"
   }
 }

@@ -1,4 +1,5 @@
 import Module, { AMBIGUOUS, NAMESPACE } from "./Module.js";
+import type ReadonlyMap from "./ReadonlyMap.js";
 import type {
     ImportEntry,
     IndirectExportEntry,
@@ -21,7 +22,7 @@ type ModuleEvaluatorOptions = {
     source: string,
     parseResult: ParseResult,
     initializeImportMeta: (importMeta: any) => void,
-    importModuleDynamically: (specifier: string) => Module | Promise<Module>,
+    importModuleDynamically: (specifier: string) => void | Promise<void>,
     importEntries: Array<ImportEntry>,
     indirectExportEntries: Array<IndirectExportEntry>,
 };
@@ -30,7 +31,7 @@ export default class GeneratorModuleEvaluator implements ModuleEvaluator {
     readonly #importEntries: Array<ImportEntry>;
     readonly #indirectExportEntries: Array<IndirectExportEntry>;
     readonly #initializeImportMeta: (importMeta: any) => void;
-    readonly #importModuleDynamically: (specifier: string) => Module | Promise<Module>;
+    readonly #importModuleDynamically: (specifier: string) => void | Promise<void>;
     readonly #moduleEvaluationGenerator: ModuleEvaluationGenerator;
     readonly #importMeta: any = Object.create(null);
     readonly #moduleScope: any = Object.create(null);
@@ -55,7 +56,7 @@ export default class GeneratorModuleEvaluator implements ModuleEvaluator {
             parseResult,
             context,
         );
-        this.#moduleEvaluationGenerator.generator.next();
+        void this.#moduleEvaluationGenerator.generator.next();
         this.#localNamespace = context.exports;
         this.#initializeImportMeta = initializeImportMeta;
         this.#importModuleDynamically = importModuleDynamically;
@@ -63,15 +64,11 @@ export default class GeneratorModuleEvaluator implements ModuleEvaluator {
         this.#indirectExportEntries = indirectExportEntries;
     }
 
-    #dynamicImport = async (specifier: any | any): Promise<any> => {
-        const module = await this.#importModuleDynamically(String(specifier));
-        if (!Module.isEvaluated(module)) {
-            throw new Error("importModuleDynamically must evaluate the module");
-        }
-        return Module.namespace(module);
-    };
+    get async(): boolean {
+        return this.#moduleEvaluationGenerator.isAsync;
+    }
 
-    initialize(linkedModules: Map<string, Module>): void {
+    initialize(linkedModules: ReadonlyMap<string, Module>): void {
         if (this.#state !== "uninitialized") {
             throw new Error("initialization has already started or completed");
         }
@@ -87,7 +84,7 @@ export default class GeneratorModuleEvaluator implements ModuleEvaluator {
             this.#moduleScope,
             this.#moduleEvaluationGenerator.dynamicImportName,
             {
-                get: () => this.#dynamicImport,
+                get: () => this.#importModuleDynamically,
             },
         );
         for (const entry of this.#importEntries) {
@@ -116,7 +113,7 @@ export default class GeneratorModuleEvaluator implements ModuleEvaluator {
         this.#state = "initialized";
     }
 
-    execute(linkedModules: Map<string, Module>): void {
+    execute(linkedModules: ReadonlyMap<string, Module>): void | Promise<void> {
         if (this.#state !== "initialized") {
             throw new Error("evaluator must be initialized to evaluate");
         }
@@ -140,8 +137,18 @@ export default class GeneratorModuleEvaluator implements ModuleEvaluator {
             }
         }
         this.#initializeImportMeta(this.#importMeta);
+        if (this.#moduleEvaluationGenerator.isAsync) {
+            const result = this.#moduleEvaluationGenerator.generator.next();
+            const finishEvaluation = () => {
+                this.#state = "evaluated";
+            };
+            return result
+                .then(() => undefined)
+                .finally(finishEvaluation);
+        }
         this.#moduleEvaluationGenerator.generator.next();
         this.#state = "evaluated";
+        return undefined;
     }
 
     getLocalBinding(name: string): () => any {
