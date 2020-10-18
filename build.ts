@@ -24,3 +24,4 @@ await fs.writeFile("./dist/parse.js", parseFileWithWasm);
 
 sh.exec("./node_modules/.bin/rollup dist/module-shim.js --file dist/module-shim.script.js --format iife --name ModuleShim -m");
 sh.exec("./node_modules/.bin/rollup dist/module-shim.js --file dist/module-shim.cjs --format cjs -m");
+sh.exec("./node_modules/.bin/terser --compress --mangle -- ./dist/module-shim.script.js > ./dist/module-shim.script.min.js");

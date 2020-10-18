@@ -148,10 +148,9 @@ export default class SourceTextModule extends CyclicModule {
         requestedModules,
         resolveModule,
     }: SourceTextModuleOptions) {
-        const uniqueRequestedModules = [...new Set(requestedModules)];
         super({
             async,
-            requestedModules: uniqueRequestedModules,
+            requestedModules,
             resolveModule,
             initializeEnvironment: () => {
                 const linkedModules = CyclicModule.linkedModules(this);
