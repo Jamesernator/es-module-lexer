@@ -80,7 +80,7 @@ export type CyclicModuleOptions = {
 };
 
 export default class CyclicModule extends Module {
-    static isCyclicModule(value: any | any): value is CyclicModule {
+    static isCyclicModule(value: any): value is CyclicModule {
         try {
             // eslint-disable-next-line @typescript-eslint/no-unused-expressions
             value.#requestedModules;

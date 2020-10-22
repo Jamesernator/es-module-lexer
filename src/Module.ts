@@ -29,7 +29,7 @@ export type ModuleOptions = {
 };
 
 export default abstract class Module {
-    static isModule(value: any | any): value is Module {
+    static isModule(value: any): value is Module {
         try {
             // eslint-disable-next-line @typescript-eslint/no-unused-expressions
             value.#link;

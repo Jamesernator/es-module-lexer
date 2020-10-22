@@ -64,7 +64,7 @@ export type SourceTextModuleCreationOptions = {
 };
 
 export default class SourceTextModule extends CyclicModule {
-    static isSourceTextModule(value: any | any): value is SourceTextModule {
+    static isSourceTextModule(value: any): value is SourceTextModule {
         try {
             // eslint-disable-next-line @typescript-eslint/no-unused-expressions
             value.#source;
