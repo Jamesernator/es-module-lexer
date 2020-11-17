@@ -1,3 +1,6 @@
+export {};
+
+/*
 import { NAMESPACE } from "./Module.js";
 import type {
     ImportEntry,
@@ -90,3 +93,4 @@ export default function getModuleEntries(
         starExportEntries,
     };
 }
+*/

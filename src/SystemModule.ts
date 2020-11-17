@@ -4,7 +4,6 @@ import type { ResolvedExport, ResolveSet } from "./Module.js";
 import Module, { AMBIGUOUS, NAMESPACE } from "./Module.js";
 import assertExists from "./assertExists.js";
 
-
 export type ModuleContext = {
     imports: Array<{}>,
     dynamicImport: (arg: string) => Promise<{}>,
@@ -33,12 +32,12 @@ type ModuleGenerator = SyncModuleGenerator | AsyncModuleGenerator;
 
 type CreateSyncModuleGenerator = {
     async?: false,
-    create: (exports: {}) => Generator<void, void, ModuleContext>,
+    create: (context: { exports: any }) => Generator<void, void, ModuleContext>,
 };
 
 type CreateAsyncModuleGenerator = {
     async: true,
-    create: (exports: {}) => AsyncGenerator<void, void, ModuleContext>,
+    create: (context: { exports: any }) => AsyncGenerator<void, void, ModuleContext>,
 };
 
 type CreateGenerator = CreateSyncModuleGenerator | CreateAsyncModuleGenerator;
@@ -71,9 +70,8 @@ export type InitializeImportMeta
 
 
 export default class SystemModule extends CyclicModule {
-    readonly #state = "unintialized";
     readonly #imports: Array<string>;
-    readonly #exports = Object.create(null);
+    readonly #exports: any;
     readonly #indirectExportEntries: Array<IndirectExportEntry> = [];
     readonly #starExportEntries: Array<StarExportEntry> = [];
     readonly #moduleGenerator: ModuleGenerator;
@@ -120,11 +118,14 @@ export default class SystemModule extends CyclicModule {
                 }
             }
         }
+        const exports = Object.create(null);
+        const context = { exports };
         this.#moduleGenerator = {
             async: createGenerator.async ?? false,
-            generator: createGenerator.create(this.#exports),
+            generator: createGenerator.create(context),
         } as ModuleGenerator;
         void this.#moduleGenerator.generator.next();
+        this.#exports = context.exports;
         Object.freeze(this.#exports);
     }
 

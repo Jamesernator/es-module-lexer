@@ -1,3 +1,6 @@
+export {};
+
+/*
 import NameGenerator from "./NameGenerator.js";
 import assertIsString from "./assertIsString.js";
 import type { ParseResult } from "./parse.js";
@@ -135,3 +138,4 @@ export default function createModuleEvaluationGenerator(
         dynamicImportName,
     };
 }
+*/

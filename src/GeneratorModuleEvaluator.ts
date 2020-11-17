@@ -1,3 +1,6 @@
+export {};
+
+/*
 import Module, { AMBIGUOUS, NAMESPACE } from "./Module.js";
 import type ReadonlyMap from "./ReadonlyMap.js";
 import type {
@@ -155,3 +158,4 @@ export default class GeneratorModuleEvaluator implements ModuleEvaluator {
         return () => this.#localNamespace[name];
     }
 }
+*/
