@@ -7,6 +7,7 @@
     "downlevelIteration": true,
     "isolatedModules": true,
     "incremental": true,
+    "composite": true,
     "tsBuildInfoFile": ".tsbuildinfo",
 
     "strict": true,
