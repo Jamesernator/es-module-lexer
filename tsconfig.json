@@ -1,9 +1,14 @@
 {
   "extends": "./tsconfig.base.json",
   "include": [
-    "./src/*.ts", 
-    "./test/**/*.ts",
-    "./*.ts", 
-    "./performance-tests/**/*.ts"
+    "src/*.ts", 
+    "test/*.ts",
+    "*.ts", 
+    "performance-tests/**/*.ts",
+    "transform/*.ts"
+  ],
+  "exclude": [
+    "node_modules/**/*", 
+    "test/test262/**/*"
   ]
 }

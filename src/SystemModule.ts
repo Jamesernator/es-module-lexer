@@ -10,13 +10,9 @@ export type ModuleContext = {
     importMeta: any,
 };
 
-type NamespaceExport = { name: null, as: string };
-type NamedExport = { name: string, as: string };
+type IndirectExports = Array<IndirectExportEntry>;
 
-type DelegatedExports = Array<{
-    specifier: string,
-    exports: "star" | Array<NamespaceExport | NamedExport>,
-}>;
+type StarExports = Array<{ specifier: string }>;
 
 type SyncModuleGenerator = {
     async: false,
@@ -44,7 +40,8 @@ type CreateGenerator = CreateSyncModuleGenerator | CreateAsyncModuleGenerator;
 
 export type SystemModuleOptions = {
     imports: Array<string>,
-    delegatedExports?: DelegatedExports,
+    indirectExports?: IndirectExports,
+    starExports?: StarExports,
     resolveModule: ResolveModule,
     initializeImportMeta?: InitializeImportMeta,
     importModuleDynamically?: ImportModuleDynamically,
@@ -80,7 +77,8 @@ export default class SystemModule extends CyclicModule {
 
     constructor({
         imports,
-        delegatedExports=[],
+        indirectExports=[],
+        starExports=[],
         resolveModule,
         createGenerator,
         initializeImportMeta,
@@ -89,7 +87,8 @@ export default class SystemModule extends CyclicModule {
         super({
             requestedModules: [
                 ...imports,
-                ...delegatedExports.map((i) => i.specifier),
+                ...indirectExports.map((i) => i.specifier),
+                ...starExports.map((i) => i.specifier),
             ],
             resolveModule,
             async: createGenerator.async ?? false,
@@ -105,19 +104,8 @@ export default class SystemModule extends CyclicModule {
         this.#imports = imports;
         this.#initializeImportMeta = initializeImportMeta;
         this.#importModuleDynamically = importModuleDynamically;
-        for (const { specifier, exports } of delegatedExports) {
-            if (exports === "star") {
-                this.#starExportEntries.push({ specifier });
-            } else {
-                for (const { name, as } of exports) {
-                    this.#indirectExportEntries.push({
-                        specifier,
-                        importName: name ?? NAMESPACE,
-                        exportName: as,
-                    });
-                }
-            }
-        }
+        this.#starExportEntries = [...starExports];
+        this.#indirectExportEntries = [...indirectExports];
         const exports = Object.create(null);
         const context = { exports };
         this.#moduleGenerator = {
