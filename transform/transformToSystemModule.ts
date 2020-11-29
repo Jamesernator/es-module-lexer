@@ -4,6 +4,7 @@ import type Generate from "@babel/generator";
 import type { ParserOptions } from "@babel/parser";
 import { parse } from "@babel/parser";
 import type Traverse from "@babel/traverse";
+import t from "@babel/types";
 import transformDefaultExport from "./transformDefaultExport.js";
 import transformImport from "./transformImport.js";
 import transformNamedExport from "./transformNamedExport.js";
@@ -34,6 +35,8 @@ const parseOptions: ParserOptions = {
     ],
 };
 
+export const NAMESPACE = Symbol("NAMESPACE");
+
 export default function transformToSystemModule(
     sourceText: string,
 ): string {
@@ -41,7 +44,11 @@ export default function transformToSystemModule(
 
     const imports: Array<string> = [];
     const localExports: Array<{ localName: string, exportName: string }> = [];
-    const indirectExports: Array<{ specifier: string, importName: string, exportName: string }> = [];
+    const indirectExports: Array<{
+        specifier: string,
+        importName: string | typeof NAMESPACE,
+        exportName: string,
+    }> = [];
     const starExports: Array<{ specifier: string }> = [];
 
     traverse(ast, {
@@ -49,6 +56,23 @@ export default function transformToSystemModule(
             const importContextName = path.scope.generateUid("importContext");
 
             path.traverse({
+                Import(path) {
+                    path.replaceWith(t.memberExpression(
+                        t.identifier(importContextName),
+                        t.identifier("dynamicImport"),
+                    ));
+                },
+
+                MetaProperty(path) {
+                    if (path.node.meta.name === "import"
+                    && path.node.property.name === "meta") {
+                        path.replaceWith(t.memberExpression(
+                            t.identifier(importContextName),
+                            t.identifier("importMeta"),
+                        ));
+                    }
+                },
+
                 ImportDeclaration(path) {
                     imports.push(transformImport(
                         importContextName,
@@ -78,13 +102,6 @@ export default function transformToSystemModule(
                 },
             });
         },
-    });
-
-    console.log({
-        imports,
-        localExports,
-        indirectExports,
-        starExports,
     });
 
     return generate(ast).code;

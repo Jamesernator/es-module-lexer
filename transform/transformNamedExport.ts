@@ -1,5 +1,6 @@
 import type { NodePath } from "@babel/traverse";
 import t from "@babel/types";
+import { NAMESPACE } from "./transformToSystemModule.js";
 
 type LocalExport = {
     localName: string,
@@ -7,7 +8,7 @@ type LocalExport = {
 };
 
 type IndirectExport = {
-    importName: string,
+    importName: string | typeof NAMESPACE,
     exportName: string,
     specifier: string,
 };
@@ -67,13 +68,65 @@ export default function transformNamedExport(
 
     if (path.node.declaration) {
         const { declaration } = path.node;
-        path.replaceWith(declaration);
 
         const names = Array.from(getDeclaredNames(declaration));
 
         for (const name of names) {
             localExports.push({ exportName: name, localName: name });
         }
+    }
+
+    function addExport(
+        specifier: string | undefined,
+        exportedName: string | typeof NAMESPACE,
+        asName: string,
+    ) {
+        if (specifier) {
+            indirectExports.push({
+                specifier,
+                importName: exportedName,
+                exportName: asName,
+            });
+        } else if (exportedName === NAMESPACE) {
+            throw new Error("Can't export local namespace");
+        } else {
+            localExports.push({
+                localName: exportedName,
+                exportName: asName,
+            });
+        }
+    }
+
+    for (const exportSpecifier of path.node.specifiers ?? []) {
+        if (t.isExportDefaultSpecifier(exportSpecifier)) {
+            addExport(
+                path.node.source?.value,
+                "default",
+                exportSpecifier.exported.name,
+            );
+        } else if (t.isExportNamespaceSpecifier(exportSpecifier)) {
+            addExport(
+                path.node.source?.value,
+                NAMESPACE,
+                exportSpecifier.exported.name,
+            );
+        } else if (t.isExportSpecifier(exportSpecifier)) {
+            const exportName
+                = exportSpecifier.exported.type === "StringLiteral"
+                ? exportSpecifier.exported.value
+                : exportSpecifier.exported.name;
+            addExport(
+                path.node.source?.value,
+                exportSpecifier.local.name,
+                exportName,
+            );
+        }
+    }
+
+    if (path.node.declaration) {
+        path.replaceWith(path.node.declaration);
+    } else {
+        path.remove();
     }
 
     return { localExports, indirectExports };
