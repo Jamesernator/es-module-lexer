@@ -3,7 +3,7 @@ import { createRequire } from "module";
 import type Generate from "@babel/generator";
 import type { ParserOptions } from "@babel/parser";
 import { parse } from "@babel/parser";
-import type Traverse from "@babel/traverse";
+import type Traverse, { Visitor } from "@babel/traverse";
 import t from "@babel/types";
 import transformDefaultExport from "./transformDefaultExport.js";
 import transformImport from "./transformImport.js";
@@ -37,6 +37,55 @@ const parseOptions: ParserOptions = {
 
 export const NAMESPACE = Symbol("NAMESPACE");
 
+function importVisitor(importContextName: string): Visitor {
+    return {
+        Import(path) {
+            path.replaceWith(t.memberExpression(
+                t.identifier(importContextName),
+                t.identifier("dynamicImport"),
+            ));
+        },
+
+        MetaProperty(path) {
+            if (path.node.meta.name === "import"
+            && path.node.property.name === "meta") {
+                path.replaceWith(t.memberExpression(
+                    t.identifier(importContextName),
+                    t.identifier("importMeta"),
+                ));
+            }
+        },
+
+        ImportDeclaration(path) {
+            imports.push(transformImport(
+                importContextName,
+                imports.length,
+                path,
+            ));
+        },
+
+        ExportDefaultDeclaration(path) {
+            localExports.push({
+                exportName: "default",
+                localName: transformDefaultExport(path),
+            });
+        },
+
+        ExportAllDeclaration(path) {
+            starExports.push({
+                specifier: path.node.source.value,
+            });
+            path.remove();
+        },
+
+        ExportNamedDeclaration(path) {
+            const exports = transformNamedExport(path);
+            localExports.push(...exports.localExports);
+            indirectExports.push(...exports.indirectExports);
+        },
+    };
+}
+
 export default function transformToSystemModule(
     sourceText: string,
 ): string {
@@ -51,56 +100,12 @@ export default function transformToSystemModule(
     }> = [];
     const starExports: Array<{ specifier: string }> = [];
 
+
     traverse(ast, {
         Program(path) {
             const importContextName = path.scope.generateUid("importContext");
 
-            path.traverse({
-                Import(path) {
-                    path.replaceWith(t.memberExpression(
-                        t.identifier(importContextName),
-                        t.identifier("dynamicImport"),
-                    ));
-                },
-
-                MetaProperty(path) {
-                    if (path.node.meta.name === "import"
-                    && path.node.property.name === "meta") {
-                        path.replaceWith(t.memberExpression(
-                            t.identifier(importContextName),
-                            t.identifier("importMeta"),
-                        ));
-                    }
-                },
-
-                ImportDeclaration(path) {
-                    imports.push(transformImport(
-                        importContextName,
-                        imports.length,
-                        path,
-                    ));
-                },
-
-                ExportDefaultDeclaration(path) {
-                    localExports.push({
-                        exportName: "default",
-                        localName: transformDefaultExport(path),
-                    });
-                },
-
-                ExportAllDeclaration(path) {
-                    starExports.push({
-                        specifier: path.node.source.value,
-                    });
-                    path.remove();
-                },
-
-                ExportNamedDeclaration(path) {
-                    const exports = transformNamedExport(path);
-                    localExports.push(...exports.localExports);
-                    indirectExports.push(...exports.indirectExports);
-                },
-            });
+            path.traverse(importVisitor);
         },
     });
 
