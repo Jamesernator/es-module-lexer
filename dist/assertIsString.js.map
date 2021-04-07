@@ -1,0 +1,1 @@
+{"version":3,"file":"assertIsString.js","sourceRoot":"","sources":["../src/assertIsString.ts"],"names":[],"mappings":"AAAA,MAAM,CAAC,OAAO,UAAU,cAAc,CAClC,KAAc;IAEd,IAAI,OAAO,KAAK,KAAK,QAAQ,EAAE;QAC3B,MAAM,IAAI,KAAK,CAAC,+BAA+B,CAAC,CAAC;KACpD;AACL,CAAC"}

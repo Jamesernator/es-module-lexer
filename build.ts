@@ -1,11 +1,13 @@
 import fs from "fs/promises";
 import sh from "shelljs";
+import childProcess from "child_process";
 
 sh.rm("-rf", "./dist/");
 sh.mkdir("./dist/");
 sh.rm("./.tsbuildinfo");
 sh.set("-e");
-sh.exec("make all");
+childProcess.spawnSync("make", ["all"], { stdio: "inherit" });
+console.log("Building typescript");
 sh.exec("./node_modules/.bin/tsc --project ./tsconfig.build.json");
 
 function encodeString(arrayBuffer: ArrayBuffer): string {
