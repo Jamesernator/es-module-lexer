@@ -1,7 +1,7 @@
 
 export default class NameGenerator {
-    #string: string;
-    #names = new Map<string, number>();
+    readonly #string: string;
+    readonly #names = new Map<string, number>();
 
     constructor(string: string) {
         this.#string = string;

@@ -20,6 +20,7 @@ declare type EvaluatingState = {
     asyncEvaluating: boolean;
     asyncParentModules: Array<CyclicModule>;
     pendingAsyncDependencies: number;
+    asyncEvaluatingId: number;
 };
 declare type EvaluatedState = {
     name: "evaluated";
@@ -27,7 +28,9 @@ declare type EvaluatedState = {
     dfsAncestorIndex: number;
     asyncParentModules: Array<CyclicModule>;
     asyncEvaluating: boolean;
+    asyncEvaluatingId: number;
     pendingAsyncDependencies: number;
+    cycleRoot: CyclicModule;
 };
 export declare type CyclicModuleStatus = UnlinkedState | LinkingState | LinkedState | EvaluatingState | EvaluatedState;
 export declare type CyclicModuleOptions = {

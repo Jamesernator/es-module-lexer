@@ -79,46 +79,30 @@ var ModuleShim = (function (exports) {
         });
     }
 
-    var __classPrivateFieldSet = (undefined && undefined.__classPrivateFieldSet) || function (receiver, privateMap, value) {
-        if (!privateMap.has(receiver)) {
-            throw new TypeError("attempted to set private field on non-instance");
-        }
-        privateMap.set(receiver, value);
-        return value;
+    var __classPrivateFieldSet = (undefined && undefined.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+        if (kind === "m") throw new TypeError("Private method is not writable");
+        if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+        if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+        return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
     };
-    var __classPrivateFieldGet = (undefined && undefined.__classPrivateFieldGet) || function (receiver, privateMap) {
-        if (!privateMap.has(receiver)) {
-            throw new TypeError("attempted to get private field on non-instance");
-        }
-        return privateMap.get(receiver);
+    var __classPrivateFieldGet = (undefined && undefined.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+        if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+        if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+        return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
     };
-    var _link, _evaluate, _getExportedNames, _resolveExport, _namespace, _isLinked, _isEvaluated, _getModuleNamespace;
+    var _Module_instances, _Module_link, _Module_evaluate, _Module_getExportedNames, _Module_resolveExport, _Module_namespace, _Module_isLinked, _Module_isEvaluated, _Module_getModuleNamespace;
     const AMBIGUOUS = Symbol("ambiguous");
     const NAMESPACE = Symbol("namespace");
     class Module {
         constructor({ link, evaluate, getExportedNames, resolveExport, }) {
-            _link.set(this, void 0);
-            _evaluate.set(this, void 0);
-            _getExportedNames.set(this, void 0);
-            _resolveExport.set(this, void 0);
-            _namespace.set(this, undefined);
-            _isLinked.set(this, false);
-            _isEvaluated.set(this, false);
-            _getModuleNamespace.set(this, () => {
-                if (__classPrivateFieldGet(this, _namespace)) {
-                    return __classPrivateFieldGet(this, _namespace);
-                }
-                const resolvedExports = new Map();
-                const exportedNames = __classPrivateFieldGet(this, _getExportedNames).call(this, new Set());
-                for (const exportName of exportedNames) {
-                    const resolvedExport = __classPrivateFieldGet(this, _resolveExport).call(this, exportName, []);
-                    if (resolvedExport !== AMBIGUOUS && resolvedExport !== null) {
-                        resolvedExports.set(exportName, resolvedExport.getBinding);
-                    }
-                }
-                __classPrivateFieldSet(this, _namespace, createModuleNamespace(resolvedExports));
-                return __classPrivateFieldGet(this, _namespace);
-            });
+            _Module_instances.add(this);
+            _Module_link.set(this, void 0);
+            _Module_evaluate.set(this, void 0);
+            _Module_getExportedNames.set(this, void 0);
+            _Module_resolveExport.set(this, void 0);
+            _Module_namespace.set(this, undefined);
+            _Module_isLinked.set(this, false);
+            _Module_isEvaluated.set(this, false);
             if (typeof link !== "function") {
                 throw new TypeError("link must be a function");
             }
@@ -131,16 +115,16 @@ var ModuleShim = (function (exports) {
             if (typeof resolveExport !== "function") {
                 throw new TypeError("resolveExport must be a function");
             }
-            __classPrivateFieldSet(this, _link, link);
-            __classPrivateFieldSet(this, _evaluate, evaluate);
-            __classPrivateFieldSet(this, _getExportedNames, getExportedNames);
-            __classPrivateFieldSet(this, _resolveExport, resolveExport);
+            __classPrivateFieldSet(this, _Module_link, link, "f");
+            __classPrivateFieldSet(this, _Module_evaluate, evaluate, "f");
+            __classPrivateFieldSet(this, _Module_getExportedNames, getExportedNames, "f");
+            __classPrivateFieldSet(this, _Module_resolveExport, resolveExport, "f");
             Object.freeze(this);
         }
         static isModule(value) {
             try {
                 // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                __classPrivateFieldGet(value, _link);
+                __classPrivateFieldGet(value, _Module_link, "f");
                 return true;
             }
             catch {
@@ -148,32 +132,32 @@ var ModuleShim = (function (exports) {
             }
         }
         static isEvaluated(module) {
-            return __classPrivateFieldGet(module, _isEvaluated);
+            return __classPrivateFieldGet(module, _Module_isEvaluated, "f");
         }
         static isLinked(module) {
-            return __classPrivateFieldGet(module, _isLinked);
+            return __classPrivateFieldGet(module, _Module_isLinked, "f");
         }
         static namespace(module) {
-            return __classPrivateFieldGet(module, _getModuleNamespace).call(module);
+            return __classPrivateFieldGet(module, _Module_instances, "m", _Module_getModuleNamespace).call(module);
         }
         static getExportedNames(module, exportStarSet = new Set()) {
-            return __classPrivateFieldGet(module, _getExportedNames).call(module, exportStarSet);
+            return __classPrivateFieldGet(module, _Module_getExportedNames, "f").call(module, exportStarSet);
         }
         static resolveExport(module, exportName, resolveSet = []) {
-            return __classPrivateFieldGet(module, _resolveExport).call(module, exportName, resolveSet);
+            return __classPrivateFieldGet(module, _Module_resolveExport, "f").call(module, exportName, resolveSet);
         }
         static async link(module) {
-            await __classPrivateFieldGet(module, _link).call(module);
+            await __classPrivateFieldGet(module, _Module_link, "f").call(module);
             // eslint-disable-next-line require-atomic-updates
-            __classPrivateFieldSet(module, _isLinked, true);
+            __classPrivateFieldSet(module, _Module_isLinked, true, "f");
         }
         static async evaluate(module) {
             if (!Module.isLinked(module)) {
                 throw new Error("Module must be linked before evaluation");
             }
-            await __classPrivateFieldGet(module, _evaluate).call(module);
+            await __classPrivateFieldGet(module, _Module_evaluate, "f").call(module);
             // eslint-disable-next-line require-atomic-updates
-            __classPrivateFieldSet(module, _isEvaluated, true);
+            __classPrivateFieldSet(module, _Module_isEvaluated, true, "f");
         }
         get namespace() {
             return Module.namespace(this);
@@ -191,46 +175,58 @@ var ModuleShim = (function (exports) {
             return await Module.evaluate(this);
         }
     }
-    _link = new WeakMap(), _evaluate = new WeakMap(), _getExportedNames = new WeakMap(), _resolveExport = new WeakMap(), _namespace = new WeakMap(), _isLinked = new WeakMap(), _isEvaluated = new WeakMap(), _getModuleNamespace = new WeakMap();
+    _Module_link = new WeakMap(), _Module_evaluate = new WeakMap(), _Module_getExportedNames = new WeakMap(), _Module_resolveExport = new WeakMap(), _Module_namespace = new WeakMap(), _Module_isLinked = new WeakMap(), _Module_isEvaluated = new WeakMap(), _Module_instances = new WeakSet(), _Module_getModuleNamespace = function _Module_getModuleNamespace() {
+        if (__classPrivateFieldGet(this, _Module_namespace, "f")) {
+            return __classPrivateFieldGet(this, _Module_namespace, "f");
+        }
+        const resolvedExports = new Map();
+        const exportedNames = __classPrivateFieldGet(this, _Module_getExportedNames, "f").call(this, new Set());
+        for (const exportName of exportedNames) {
+            const resolvedExport = __classPrivateFieldGet(this, _Module_resolveExport, "f").call(this, exportName, []);
+            if (resolvedExport !== AMBIGUOUS && resolvedExport !== null) {
+                resolvedExports.set(exportName, resolvedExport.getBinding);
+            }
+        }
+        __classPrivateFieldSet(this, _Module_namespace, createModuleNamespace(resolvedExports), "f");
+        return __classPrivateFieldGet(this, _Module_namespace, "f");
+    };
     Object.freeze(Module);
     Object.freeze(Module.prototype);
 
-    var __classPrivateFieldSet$1 = (undefined && undefined.__classPrivateFieldSet) || function (receiver, privateMap, value) {
-        if (!privateMap.has(receiver)) {
-            throw new TypeError("attempted to set private field on non-instance");
-        }
-        privateMap.set(receiver, value);
-        return value;
+    var __classPrivateFieldSet$1 = (undefined && undefined.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+        if (kind === "m") throw new TypeError("Private method is not writable");
+        if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+        if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+        return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
     };
-    var __classPrivateFieldGet$1 = (undefined && undefined.__classPrivateFieldGet) || function (receiver, privateMap) {
-        if (!privateMap.has(receiver)) {
-            throw new TypeError("attempted to get private field on non-instance");
-        }
-        return privateMap.get(receiver);
+    var __classPrivateFieldGet$1 = (undefined && undefined.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+        if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+        if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+        return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
     };
-    var _map;
+    var _ReadonlyMap_map;
     class ReadonlyMap {
         constructor(map) {
-            _map.set(this, void 0);
-            __classPrivateFieldSet$1(this, _map, map);
+            _ReadonlyMap_map.set(this, void 0);
+            __classPrivateFieldSet$1(this, _ReadonlyMap_map, map, "f");
         }
         get(key) {
-            return __classPrivateFieldGet$1(this, _map).get(key);
+            return __classPrivateFieldGet$1(this, _ReadonlyMap_map, "f").get(key);
         }
         has(key) {
-            return __classPrivateFieldGet$1(this, _map).has(key);
+            return __classPrivateFieldGet$1(this, _ReadonlyMap_map, "f").has(key);
         }
         *entries() {
-            yield* __classPrivateFieldGet$1(this, _map).entries();
+            yield* __classPrivateFieldGet$1(this, _ReadonlyMap_map, "f").entries();
         }
         *values() {
-            yield* __classPrivateFieldGet$1(this, _map).values();
+            yield* __classPrivateFieldGet$1(this, _ReadonlyMap_map, "f").values();
         }
         *keys() {
-            yield* __classPrivateFieldGet$1(this, _map).keys();
+            yield* __classPrivateFieldGet$1(this, _ReadonlyMap_map, "f").keys();
         }
     }
-    _map = new WeakMap();
+    _ReadonlyMap_map = new WeakMap();
     Object.freeze(ReadonlyMap);
     Object.freeze(ReadonlyMap.prototype);
 
@@ -240,377 +236,77 @@ var ModuleShim = (function (exports) {
         }
     }
 
-    var __classPrivateFieldSet$2 = (undefined && undefined.__classPrivateFieldSet) || function (receiver, privateMap, value) {
-        if (!privateMap.has(receiver)) {
-            throw new TypeError("attempted to set private field on non-instance");
-        }
-        privateMap.set(receiver, value);
-        return value;
+    var __classPrivateFieldSet$2 = (undefined && undefined.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+        if (kind === "m") throw new TypeError("Private method is not writable");
+        if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+        if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+        return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
     };
-    var __classPrivateFieldGet$2 = (undefined && undefined.__classPrivateFieldGet) || function (receiver, privateMap) {
-        if (!privateMap.has(receiver)) {
-            throw new TypeError("attempted to get private field on non-instance");
-        }
-        return privateMap.get(receiver);
+    var __classPrivateFieldGet$2 = (undefined && undefined.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+        if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+        if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+        return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
     };
-    var _resolve, _reject, _promise, _requestedModules, _initializeEnvironment, _executeModule, _resolveModule, _async, _linkedModules, _linkedModulesView, _evaluationError, _topLevelCapability, _status, _linkRequiredModule, _finalizeLinking, _innerModuleLinking, _link$1, _getAsyncCycleRoot, _onDependencyFinishedSuccessfully, _asyncModuleExecutionFulfilled, _asyncModuleExectionRejected, _executeAsyncModule, _executeOtherModule, _executeRequiredModule, _finalizeEvaluation, _innerModuleEvaluation, _evaluate$1;
+    var _PromiseCapability_resolve, _PromiseCapability_reject, _PromiseCapability_promise, _CyclicModule_instances, _a, _CyclicModule_innerModuleLinking, _CyclicModule_innerModuleEvaluation, _CyclicModule_executeAsyncModule, _CyclicModule_gatherAsyncParentCompletions, _CyclicModule_asyncModuleExecutionFulfilled, _CyclicModule_asyncModuleExecutionRejected, _CyclicModule_requestedModules, _CyclicModule_initializeEnvironment, _CyclicModule_executeModule, _CyclicModule_resolveModule, _CyclicModule_async, _CyclicModule_linkedModules, _CyclicModule_linkedModulesView, _CyclicModule_evaluationError, _CyclicModule_topLevelCapability, _CyclicModule_status, _CyclicModule_link, _CyclicModule_evaluate;
+    async function promiseTry(func) {
+        return await func();
+    }
     class PromiseCapability {
         constructor() {
-            _resolve.set(this, void 0);
-            _reject.set(this, void 0);
-            _promise.set(this, new Promise((resolve, reject) => {
-                __classPrivateFieldSet$2(this, _resolve, resolve);
-                __classPrivateFieldSet$2(this, _reject, reject);
+            _PromiseCapability_resolve.set(this, void 0);
+            _PromiseCapability_reject.set(this, void 0);
+            _PromiseCapability_promise.set(this, new Promise((resolve, reject) => {
+                __classPrivateFieldSet$2(this, _PromiseCapability_resolve, resolve, "f");
+                __classPrivateFieldSet$2(this, _PromiseCapability_reject, reject, "f");
             }));
         }
         get resolve() {
-            return __classPrivateFieldGet$2(this, _resolve);
+            return __classPrivateFieldGet$2(this, _PromiseCapability_resolve, "f");
         }
         get reject() {
-            return __classPrivateFieldGet$2(this, _reject);
+            return __classPrivateFieldGet$2(this, _PromiseCapability_reject, "f");
         }
         get promise() {
-            return __classPrivateFieldGet$2(this, _promise);
+            return __classPrivateFieldGet$2(this, _PromiseCapability_promise, "f");
         }
     }
-    _resolve = new WeakMap(), _reject = new WeakMap(), _promise = new WeakMap();
+    _PromiseCapability_resolve = new WeakMap(), _PromiseCapability_reject = new WeakMap(), _PromiseCapability_promise = new WeakMap();
+    let asyncEvaluatingId = 0;
     class CyclicModule extends Module {
         constructor({ async, requestedModules, initializeEnvironment, executeModule, resolveModule, resolveExport, getExportedNames, }) {
             super({
-                link: () => __classPrivateFieldGet$2(this, _link$1).call(this),
-                evaluate: () => __classPrivateFieldGet$2(this, _evaluate$1).call(this),
+                link: () => __classPrivateFieldGet$2(this, _CyclicModule_instances, "m", _CyclicModule_link).call(this),
+                evaluate: () => __classPrivateFieldGet$2(this, _CyclicModule_instances, "m", _CyclicModule_evaluate).call(this),
                 getExportedNames: (exportStarSet) => {
-                    if (__classPrivateFieldGet$2(this, _status).name === "unlinked") {
+                    if (__classPrivateFieldGet$2(this, _CyclicModule_status, "f").name === "unlinked") {
                         throw new Error("can't get exported names before linking");
                     }
                     return getExportedNames(exportStarSet);
                 },
                 resolveExport: (exportName, resolveSet) => {
-                    if (__classPrivateFieldGet$2(this, _status).name === "unlinked") {
+                    if (__classPrivateFieldGet$2(this, _CyclicModule_status, "f").name === "unlinked") {
                         throw new Error("can't resolve export before linking");
                     }
                     return resolveExport(exportName, resolveSet);
                 },
             });
-            _requestedModules.set(this, void 0);
-            _initializeEnvironment.set(this, void 0);
-            _executeModule.set(this, void 0);
-            _resolveModule.set(this, void 0);
-            _async.set(this, void 0);
-            _linkedModules.set(this, new Map());
-            _linkedModulesView.set(this, new ReadonlyMap(__classPrivateFieldGet$2(this, _linkedModules)));
-            _evaluationError.set(this, void 0);
-            _topLevelCapability.set(this, void 0);
-            _status.set(this, { name: "unlinked" });
-            _linkRequiredModule.set(this, async (requiredSpecifier, stack, index) => {
-                assert(__classPrivateFieldGet$2(this, _status).name === "linking");
-                const requiredModule = await CyclicModule.resolveModule(this, requiredSpecifier);
-                if (CyclicModule.isCyclicModule(requiredModule)) {
-                    index = await __classPrivateFieldGet$2(requiredModule, _innerModuleLinking).call(requiredModule, stack, index);
-                    assert(__classPrivateFieldGet$2(requiredModule, _status).name === "linking"
-                        || __classPrivateFieldGet$2(requiredModule, _status).name === "linked"
-                        || __classPrivateFieldGet$2(requiredModule, _status).name === "evaluated");
-                    if (__classPrivateFieldGet$2(requiredModule, _status).name === "linking") {
-                        assert(stack.includes(requiredModule));
-                        __classPrivateFieldGet$2(this, _status).dfsAncestorIndex = Math.min(__classPrivateFieldGet$2(this, _status).dfsAncestorIndex, __classPrivateFieldGet$2(requiredModule, _status).dfsAncestorIndex);
-                    }
-                }
-                else {
-                    await requiredModule.link();
-                }
-                return index;
-            });
-            _finalizeLinking.set(this, (stack) => {
-                assert(__classPrivateFieldGet$2(this, _status).name === "linking");
-                if (__classPrivateFieldGet$2(this, _status).dfsAncestorIndex === __classPrivateFieldGet$2(this, _status).dfsIndex) {
-                    let done = false;
-                    while (!done) {
-                        const requiredModule = stack.pop();
-                        __classPrivateFieldSet$2(requiredModule, _status, { name: "linked" });
-                        if (requiredModule === this) {
-                            done = true;
-                        }
-                    }
-                }
-            });
-            _innerModuleLinking.set(this, async (stack, index) => {
-                if (__classPrivateFieldGet$2(this, _status).name === "linking"
-                    || __classPrivateFieldGet$2(this, _status).name === "linked"
-                    || __classPrivateFieldGet$2(this, _status).name === "evaluated") {
-                    return index;
-                }
-                assert(__classPrivateFieldGet$2(this, _status).name === "unlinked");
-                __classPrivateFieldSet$2(this, _status, {
-                    name: "linking",
-                    dfsIndex: index,
-                    dfsAncestorIndex: index,
-                });
-                index += 1;
-                stack.push(this);
-                for (const required of __classPrivateFieldGet$2(this, _requestedModules)) {
-                    await __classPrivateFieldGet$2(this, _linkRequiredModule).call(this, required, stack, index);
-                }
-                __classPrivateFieldGet$2(this, _initializeEnvironment).call(this);
-                __classPrivateFieldGet$2(this, _finalizeLinking).call(this, stack);
-                return index;
-            });
-            _link$1.set(this, async () => {
-                if (__classPrivateFieldGet$2(this, _status).name === "linking") {
-                    throw new TypeError("module can't be linked again during linking");
-                }
-                if (__classPrivateFieldGet$2(this, _status).name === "evaluating") {
-                    throw new TypeError("module can't be linked during evaluation");
-                }
-                if (__classPrivateFieldGet$2(this, _status).name !== "unlinked") {
-                    return;
-                }
-                const stack = [];
-                try {
-                    await __classPrivateFieldGet$2(this, _innerModuleLinking).call(this, stack, 0);
-                }
-                catch (error) {
-                    for (const module of stack) {
-                        assert(__classPrivateFieldGet$2(module, _status).name === "linking");
-                        __classPrivateFieldSet$2(module, _status, { name: "unlinked" });
-                        __classPrivateFieldGet$2(module, _linkedModules).clear();
-                    }
-                    assert(__classPrivateFieldGet$2(this, _status).name === "unlinked");
-                    throw error;
-                }
-                assert(stack.length === 0);
-            });
-            _getAsyncCycleRoot.set(this, (module) => {
-                if (__classPrivateFieldGet$2(module, _status).name !== "evaluated") {
-                    throw new Error("Should only get async cycle root after evaluation");
-                }
-                if (__classPrivateFieldGet$2(module, _status).asyncParentModules.length === 0) {
-                    return module;
-                }
-                while (__classPrivateFieldGet$2(module, _status).dfsIndex > __classPrivateFieldGet$2(module, _status).dfsAncestorIndex) {
-                    assert(__classPrivateFieldGet$2(module, _status).asyncParentModules.length > 0);
-                    const nextCycleModule = __classPrivateFieldGet$2(module, _status).asyncParentModules[0];
-                    assert(__classPrivateFieldGet$2(nextCycleModule, _status).name === "evaluating"
-                        || __classPrivateFieldGet$2(nextCycleModule, _status).name === "evaluated");
-                    assert(__classPrivateFieldGet$2(nextCycleModule, _status).dfsAncestorIndex
-                        <= __classPrivateFieldGet$2(module, _status).dfsAncestorIndex);
-                    module = nextCycleModule;
-                    assert(__classPrivateFieldGet$2(module, _status).name === "evaluating"
-                        || __classPrivateFieldGet$2(module, _status).name === "evaluated");
-                }
-                assert(__classPrivateFieldGet$2(module, _status).dfsIndex === __classPrivateFieldGet$2(module, _status).dfsAncestorIndex);
-                return module;
-            });
-            _onDependencyFinishedSuccessfully.set(this, () => {
-                assert(__classPrivateFieldGet$2(this, _status).name === "evaluating"
-                    || __classPrivateFieldGet$2(this, _status).name === "evaluated");
-                __classPrivateFieldGet$2(this, _status).pendingAsyncDependencies -= 1;
-                if (__classPrivateFieldGet$2(this, _status).pendingAsyncDependencies === 0
-                    && __classPrivateFieldGet$2(this, _evaluationError) === undefined) {
-                    assert(__classPrivateFieldGet$2(this, _status).asyncEvaluating);
-                    const cycleRoot = __classPrivateFieldGet$2(this, _getAsyncCycleRoot).call(this, this);
-                    if (__classPrivateFieldGet$2(cycleRoot, _evaluationError)) {
-                        return;
-                    }
-                    if (__classPrivateFieldGet$2(this, _async)) {
-                        void __classPrivateFieldGet$2(this, _executeAsyncModule).call(this);
-                    }
-                    else {
-                        try {
-                            const value = __classPrivateFieldGet$2(this, _executeModule).call(this);
-                            assert(value === undefined, "synchronous executeModule must not return a value");
-                            __classPrivateFieldGet$2(this, _asyncModuleExecutionFulfilled).call(this);
-                        }
-                        catch (error) {
-                            __classPrivateFieldGet$2(this, _asyncModuleExectionRejected).call(this, error);
-                        }
-                    }
-                }
-            });
-            _asyncModuleExecutionFulfilled.set(this, () => {
-                assert(__classPrivateFieldGet$2(this, _status).name === "evaluated");
-                if (!__classPrivateFieldGet$2(this, _status).asyncEvaluating) {
-                    assert(__classPrivateFieldGet$2(this, _evaluationError) !== undefined);
-                    return;
-                }
-                assert(__classPrivateFieldGet$2(this, _evaluationError) === undefined);
-                __classPrivateFieldGet$2(this, _status).asyncEvaluating = false;
-                for (const parent of __classPrivateFieldGet$2(this, _status).asyncParentModules) {
-                    __classPrivateFieldGet$2(parent, _onDependencyFinishedSuccessfully).call(parent);
-                }
-                if (__classPrivateFieldGet$2(this, _topLevelCapability)) {
-                    assert(__classPrivateFieldGet$2(this, _status).dfsIndex === __classPrivateFieldGet$2(this, _status).dfsAncestorIndex);
-                    __classPrivateFieldGet$2(this, _topLevelCapability).resolve();
-                }
-            });
-            _asyncModuleExectionRejected.set(this, (error) => {
-                assert(__classPrivateFieldGet$2(this, _status).name === "evaluated");
-                if (!__classPrivateFieldGet$2(this, _status).asyncEvaluating) {
-                    assert(__classPrivateFieldGet$2(this, _evaluationError) !== undefined);
-                    return;
-                }
-                assert(__classPrivateFieldGet$2(this, _evaluationError) === undefined);
-                __classPrivateFieldSet$2(this, _evaluationError, { error });
-                __classPrivateFieldGet$2(this, _status).asyncEvaluating = false;
-                for (const parent of __classPrivateFieldGet$2(this, _status).asyncParentModules) {
-                    __classPrivateFieldGet$2(parent, _asyncModuleExectionRejected).call(parent, error);
-                }
-                if (__classPrivateFieldGet$2(this, _topLevelCapability)) {
-                    assert(__classPrivateFieldGet$2(this, _status).dfsIndex === __classPrivateFieldGet$2(this, _status).dfsAncestorIndex);
-                    __classPrivateFieldGet$2(this, _topLevelCapability).reject(error);
-                }
-            });
-            _executeAsyncModule.set(this, async () => {
-                assert(__classPrivateFieldGet$2(this, _status).name === "evaluating"
-                    || __classPrivateFieldGet$2(this, _status).name === "evaluated");
-                assert(__classPrivateFieldGet$2(this, _async));
-                __classPrivateFieldGet$2(this, _status).asyncEvaluating = true;
-                try {
-                    await __classPrivateFieldGet$2(this, _executeModule).call(this);
-                    __classPrivateFieldGet$2(this, _asyncModuleExecutionFulfilled).call(this);
-                }
-                catch (error) {
-                    __classPrivateFieldGet$2(this, _asyncModuleExectionRejected).call(this, error);
-                }
-            });
-            _executeOtherModule.set(this, async (module) => {
-                try {
-                    await module.evaluate();
-                    __classPrivateFieldGet$2(this, _onDependencyFinishedSuccessfully).call(this);
-                }
-                catch (error) {
-                    __classPrivateFieldGet$2(this, _asyncModuleExectionRejected).call(this, error);
-                }
-            });
-            _executeRequiredModule.set(this, (requiredModule, stack, index) => {
-                assert(__classPrivateFieldGet$2(this, _status).name === "evaluating");
-                if (CyclicModule.isCyclicModule(requiredModule)) {
-                    index = __classPrivateFieldGet$2(requiredModule, _innerModuleEvaluation).call(requiredModule, stack, index);
-                    assert(__classPrivateFieldGet$2(requiredModule, _status).name === "evaluating"
-                        || __classPrivateFieldGet$2(requiredModule, _status).name === "evaluated");
-                    if (__classPrivateFieldGet$2(requiredModule, _status).name === "evaluating") {
-                        assert(stack.includes(requiredModule));
-                    }
-                    if (__classPrivateFieldGet$2(requiredModule, _status).name === "evaluating") {
-                        __classPrivateFieldGet$2(this, _status).dfsAncestorIndex = Math.min(__classPrivateFieldGet$2(requiredModule, _status).dfsAncestorIndex, __classPrivateFieldGet$2(requiredModule, _status).dfsAncestorIndex);
-                    }
-                    else if (__classPrivateFieldGet$2(requiredModule, _evaluationError)) {
-                        const rootModule = __classPrivateFieldGet$2(this, _getAsyncCycleRoot).call(this, requiredModule);
-                        assert(__classPrivateFieldGet$2(rootModule, _status).name === "evaluated");
-                        if (__classPrivateFieldGet$2(rootModule, _evaluationError)) {
-                            throw __classPrivateFieldGet$2(rootModule, _evaluationError).error;
-                        }
-                    }
-                    if (__classPrivateFieldGet$2(requiredModule, _status).asyncEvaluating) {
-                        __classPrivateFieldGet$2(this, _status).pendingAsyncDependencies += 1;
-                        __classPrivateFieldGet$2(requiredModule, _status).asyncParentModules.push(this);
-                    }
-                }
-                else {
-                    __classPrivateFieldGet$2(this, _status).pendingAsyncDependencies += 1;
-                    void __classPrivateFieldGet$2(this, _executeOtherModule).call(this, requiredModule);
-                }
-                return index;
-            });
-            _finalizeEvaluation.set(this, (stack) => {
-                assert(__classPrivateFieldGet$2(this, _status).name === "evaluating");
-                if (__classPrivateFieldGet$2(this, _status).dfsAncestorIndex === __classPrivateFieldGet$2(this, _status).dfsIndex) {
-                    let done = false;
-                    while (!done) {
-                        const requiredModule = stack.pop();
-                        assert(__classPrivateFieldGet$2(requiredModule, _status).name === "evaluating");
-                        __classPrivateFieldSet$2(requiredModule, _status, {
-                            name: "evaluated",
-                            dfsIndex: __classPrivateFieldGet$2(requiredModule, _status).dfsIndex,
-                            dfsAncestorIndex: __classPrivateFieldGet$2(requiredModule, _status).dfsAncestorIndex,
-                            asyncParentModules: __classPrivateFieldGet$2(requiredModule, _status).asyncParentModules,
-                            asyncEvaluating: __classPrivateFieldGet$2(requiredModule, _status).asyncEvaluating,
-                            pendingAsyncDependencies: __classPrivateFieldGet$2(requiredModule, _status).pendingAsyncDependencies,
-                        });
-                        done = requiredModule === this;
-                    }
-                }
-            });
-            _innerModuleEvaluation.set(this, (stack, index) => {
-                if (__classPrivateFieldGet$2(this, _status).name === "evaluated") {
-                    if (__classPrivateFieldGet$2(this, _evaluationError)) {
-                        throw __classPrivateFieldGet$2(this, _evaluationError).error;
-                    }
-                    return index;
-                }
-                if (__classPrivateFieldGet$2(this, _status).name === "evaluating") {
-                    return index;
-                }
-                assert(__classPrivateFieldGet$2(this, _status).name === "linked");
-                __classPrivateFieldSet$2(this, _status, {
-                    name: "evaluating",
-                    dfsIndex: index,
-                    dfsAncestorIndex: index,
-                    pendingAsyncDependencies: 0,
-                    asyncParentModules: [],
-                    asyncEvaluating: false,
-                });
-                index += 1;
-                stack.push(this);
-                for (const required of __classPrivateFieldGet$2(this, _requestedModules)) {
-                    const requiredModule = __classPrivateFieldGet$2(this, _linkedModules).get(required);
-                    assert(requiredModule !== undefined);
-                    index = __classPrivateFieldGet$2(this, _executeRequiredModule).call(this, requiredModule, stack, index);
-                }
-                if (__classPrivateFieldGet$2(this, _status).pendingAsyncDependencies > 0) {
-                    __classPrivateFieldGet$2(this, _status).asyncEvaluating = true;
-                }
-                else if (__classPrivateFieldGet$2(this, _async)) {
-                    void __classPrivateFieldGet$2(this, _executeAsyncModule).call(this);
-                }
-                else {
-                    const value = __classPrivateFieldGet$2(this, _executeModule).call(this);
-                    assert(value === undefined, "executeModule for a synchronous module must not return a value");
-                }
-                __classPrivateFieldGet$2(this, _finalizeEvaluation).call(this, stack);
-                return index;
-            });
-            _evaluate$1.set(this, () => {
-                assert(__classPrivateFieldGet$2(this, _status).name === "linked"
-                    || __classPrivateFieldGet$2(this, _status).name === "evaluated");
-                const module = __classPrivateFieldGet$2(this, _status).name === "evaluated"
-                    ? __classPrivateFieldGet$2(this, _getAsyncCycleRoot).call(this, this)
-                    : this;
-                if (__classPrivateFieldGet$2(module, _topLevelCapability)) {
-                    return __classPrivateFieldGet$2(module, _topLevelCapability).promise;
-                }
-                const stack = [];
-                const capability = new PromiseCapability();
-                __classPrivateFieldSet$2(module, _topLevelCapability, capability);
-                try {
-                    __classPrivateFieldGet$2(this, _innerModuleEvaluation).call(this, stack, 0);
-                    assert(__classPrivateFieldGet$2(module, _status).name === "evaluated");
-                    assert(__classPrivateFieldGet$2(module, _evaluationError) === undefined);
-                    if (!__classPrivateFieldGet$2(module, _status).asyncEvaluating) {
-                        capability.resolve(undefined);
-                    }
-                }
-                catch (error) {
-                    for (const module of stack) {
-                        assert(__classPrivateFieldGet$2(module, _status).name === "evaluating");
-                        __classPrivateFieldSet$2(module, _status, {
-                            name: "evaluated",
-                            dfsIndex: __classPrivateFieldGet$2(module, _status).dfsIndex,
-                            dfsAncestorIndex: __classPrivateFieldGet$2(module, _status).dfsAncestorIndex,
-                            asyncEvaluating: __classPrivateFieldGet$2(module, _status).asyncEvaluating,
-                            asyncParentModules: __classPrivateFieldGet$2(module, _status).asyncParentModules,
-                            pendingAsyncDependencies: __classPrivateFieldGet$2(module, _status).pendingAsyncDependencies,
-                        });
-                    }
-                    capability.reject(error);
-                }
-                return capability.promise;
-            });
-            __classPrivateFieldSet$2(this, _async, async);
+            _CyclicModule_instances.add(this);
+            _CyclicModule_requestedModules.set(this, void 0);
+            _CyclicModule_initializeEnvironment.set(this, void 0);
+            _CyclicModule_executeModule.set(this, void 0);
+            _CyclicModule_resolveModule.set(this, void 0);
+            _CyclicModule_async.set(this, void 0);
+            _CyclicModule_linkedModules.set(this, new Map());
+            _CyclicModule_linkedModulesView.set(this, new ReadonlyMap(__classPrivateFieldGet$2(this, _CyclicModule_linkedModules, "f")));
+            _CyclicModule_evaluationError.set(this, void 0);
+            _CyclicModule_topLevelCapability.set(this, void 0);
+            _CyclicModule_status.set(this, { name: "unlinked" });
+            __classPrivateFieldSet$2(this, _CyclicModule_async, async, "f");
             if (!Array.isArray(requestedModules)) {
                 throw new TypeError("requestedModules must be a list of strings");
             }
-            __classPrivateFieldSet$2(this, _requestedModules, Object.freeze([...new Set(requestedModules)]));
-            if (__classPrivateFieldGet$2(this, _requestedModules).some((i) => typeof i !== "string")) {
+            __classPrivateFieldSet$2(this, _CyclicModule_requestedModules, Object.freeze([...new Set(requestedModules)]), "f");
+            if (__classPrivateFieldGet$2(this, _CyclicModule_requestedModules, "f").some((i) => typeof i !== "string")) {
                 throw new TypeError(`requestedModules contains a non-string value`);
             }
             if (typeof initializeEnvironment !== "function") {
@@ -622,15 +318,15 @@ var ModuleShim = (function (exports) {
             if (typeof resolveModule !== "function") {
                 throw new TypeError("resolveModule must be a function");
             }
-            __classPrivateFieldSet$2(this, _initializeEnvironment, initializeEnvironment);
-            __classPrivateFieldSet$2(this, _executeModule, executeModule);
-            __classPrivateFieldSet$2(this, _resolveModule, resolveModule);
+            __classPrivateFieldSet$2(this, _CyclicModule_initializeEnvironment, initializeEnvironment, "f");
+            __classPrivateFieldSet$2(this, _CyclicModule_executeModule, executeModule, "f");
+            __classPrivateFieldSet$2(this, _CyclicModule_resolveModule, resolveModule, "f");
             Object.freeze(this);
         }
         static isCyclicModule(value) {
             try {
                 // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                __classPrivateFieldGet$2(value, _requestedModules);
+                __classPrivateFieldGet$2(value, _CyclicModule_requestedModules, "f");
                 return true;
             }
             catch {
@@ -638,73 +334,360 @@ var ModuleShim = (function (exports) {
             }
         }
         static linkedModules(cyclicModule) {
-            return __classPrivateFieldGet$2(cyclicModule, _linkedModulesView);
+            return __classPrivateFieldGet$2(cyclicModule, _CyclicModule_linkedModulesView, "f");
         }
         static async resolveModule(cyclicModule, specifier) {
-            const alreadyLinkedModule = __classPrivateFieldGet$2(cyclicModule, _linkedModules).get(specifier);
+            const alreadyLinkedModule = __classPrivateFieldGet$2(cyclicModule, _CyclicModule_linkedModules, "f")
+                .get(specifier);
             if (alreadyLinkedModule) {
                 return alreadyLinkedModule;
             }
-            const linkedModule = await __classPrivateFieldGet$2(cyclicModule, _resolveModule).call(cyclicModule, specifier, cyclicModule);
-            if (__classPrivateFieldGet$2(cyclicModule, _linkedModules).has(specifier)
-                && __classPrivateFieldGet$2(cyclicModule, _linkedModules).get(specifier) !== linkedModule) {
+            const linkedModule = await __classPrivateFieldGet$2(cyclicModule, _CyclicModule_resolveModule, "f").call(cyclicModule, specifier, cyclicModule);
+            if (__classPrivateFieldGet$2(cyclicModule, _CyclicModule_linkedModules, "f").has(specifier)
+                && __classPrivateFieldGet$2(cyclicModule, _CyclicModule_linkedModules, "f").get(specifier) !== linkedModule) {
                 throw new Error("cyclic module has already resolved successfully");
             }
-            __classPrivateFieldGet$2(cyclicModule, _linkedModules).set(specifier, linkedModule);
+            __classPrivateFieldGet$2(cyclicModule, _CyclicModule_linkedModules, "f").set(specifier, linkedModule);
             return linkedModule;
         }
         get async() {
-            return __classPrivateFieldGet$2(this, _async);
+            return __classPrivateFieldGet$2(this, _CyclicModule_async, "f");
         }
         get linkedModules() {
-            return __classPrivateFieldGet$2(this, _linkedModulesView);
+            return __classPrivateFieldGet$2(this, _CyclicModule_linkedModulesView, "f");
         }
         get requestedModules() {
-            return __classPrivateFieldGet$2(this, _requestedModules);
+            return __classPrivateFieldGet$2(this, _CyclicModule_requestedModules, "f");
         }
         get status() {
-            return __classPrivateFieldGet$2(this, _status).name;
+            return __classPrivateFieldGet$2(this, _CyclicModule_status, "f").name;
         }
         async resolveModule(specifier) {
             return await CyclicModule.resolveModule(this, specifier);
         }
     }
-    _requestedModules = new WeakMap(), _initializeEnvironment = new WeakMap(), _executeModule = new WeakMap(), _resolveModule = new WeakMap(), _async = new WeakMap(), _linkedModules = new WeakMap(), _linkedModulesView = new WeakMap(), _evaluationError = new WeakMap(), _topLevelCapability = new WeakMap(), _status = new WeakMap(), _linkRequiredModule = new WeakMap(), _finalizeLinking = new WeakMap(), _innerModuleLinking = new WeakMap(), _link$1 = new WeakMap(), _getAsyncCycleRoot = new WeakMap(), _onDependencyFinishedSuccessfully = new WeakMap(), _asyncModuleExecutionFulfilled = new WeakMap(), _asyncModuleExectionRejected = new WeakMap(), _executeAsyncModule = new WeakMap(), _executeOtherModule = new WeakMap(), _executeRequiredModule = new WeakMap(), _finalizeEvaluation = new WeakMap(), _innerModuleEvaluation = new WeakMap(), _evaluate$1 = new WeakMap();
+    _a = CyclicModule, _CyclicModule_requestedModules = new WeakMap(), _CyclicModule_initializeEnvironment = new WeakMap(), _CyclicModule_executeModule = new WeakMap(), _CyclicModule_resolveModule = new WeakMap(), _CyclicModule_async = new WeakMap(), _CyclicModule_linkedModules = new WeakMap(), _CyclicModule_linkedModulesView = new WeakMap(), _CyclicModule_evaluationError = new WeakMap(), _CyclicModule_topLevelCapability = new WeakMap(), _CyclicModule_status = new WeakMap(), _CyclicModule_instances = new WeakSet(), _CyclicModule_innerModuleLinking = async function _CyclicModule_innerModuleLinking(module, stack, index) {
+        if (!CyclicModule.isCyclicModule(module)) {
+            await Module.link(module);
+            return index;
+        }
+        if (__classPrivateFieldGet$2(module, _CyclicModule_status, "f").name === "linking"
+            || __classPrivateFieldGet$2(module, _CyclicModule_status, "f").name === "linked"
+            || __classPrivateFieldGet$2(module, _CyclicModule_status, "f").name === "evaluated") {
+            return index;
+        }
+        assert(__classPrivateFieldGet$2(module, _CyclicModule_status, "f").name === "unlinked");
+        __classPrivateFieldSet$2(module, _CyclicModule_status, {
+            name: "linking",
+            dfsAncestorIndex: index,
+            dfsIndex: index,
+        }, "f");
+        index += 1;
+        stack.push(module);
+        for (const requiredModuleSpecifier of __classPrivateFieldGet$2(module, _CyclicModule_requestedModules, "f")) {
+            const requiredModule = await CyclicModule.resolveModule(module, requiredModuleSpecifier);
+            index = await __classPrivateFieldGet$2(CyclicModule, _a, "m", _CyclicModule_innerModuleLinking).call(CyclicModule, requiredModule, stack, index);
+            if (CyclicModule.isCyclicModule(requiredModule)) {
+                assert(__classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f").name === "linking"
+                    || __classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f").name === "linked"
+                    || __classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f").name === "evaluated");
+                if (__classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f").name === "linking") {
+                    assert(stack.includes(requiredModule));
+                    // eslint-disable-next-line require-atomic-updates
+                    __classPrivateFieldGet$2(module, _CyclicModule_status, "f").dfsAncestorIndex = Math.min(__classPrivateFieldGet$2(module, _CyclicModule_status, "f").dfsAncestorIndex, __classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f").dfsAncestorIndex);
+                }
+                else {
+                    assert(!stack.includes(requiredModule));
+                }
+            }
+        }
+        __classPrivateFieldGet$2(module, _CyclicModule_initializeEnvironment, "f").call(module);
+        assert(stack.filter((m) => m === module).length === 1);
+        assert(__classPrivateFieldGet$2(module, _CyclicModule_status, "f").dfsAncestorIndex <= __classPrivateFieldGet$2(module, _CyclicModule_status, "f").dfsIndex);
+        if (__classPrivateFieldGet$2(module, _CyclicModule_status, "f").dfsAncestorIndex === __classPrivateFieldGet$2(module, _CyclicModule_status, "f").dfsIndex) {
+            let done = false;
+            while (!done) {
+                const requiredModule = stack.pop();
+                assert(requiredModule !== undefined);
+                __classPrivateFieldSet$2(requiredModule, _CyclicModule_status, { name: "linked" }, "f");
+                if (module === requiredModule) {
+                    done = true;
+                }
+            }
+        }
+        return index;
+    }, _CyclicModule_innerModuleEvaluation = function _CyclicModule_innerModuleEvaluation(module, stack, index) {
+        if (!CyclicModule.isCyclicModule(module)) {
+            // TODO: Change this to work differently
+            void module.evaluate();
+            return index;
+        }
+        if (__classPrivateFieldGet$2(module, _CyclicModule_status, "f").name === "evaluated") {
+            if (__classPrivateFieldGet$2(module, _CyclicModule_evaluationError, "f")) {
+                throw __classPrivateFieldGet$2(module, _CyclicModule_evaluationError, "f").error;
+            }
+            return index;
+        }
+        if (__classPrivateFieldGet$2(module, _CyclicModule_status, "f").name === "evaluating") {
+            return index;
+        }
+        assert(__classPrivateFieldGet$2(module, _CyclicModule_status, "f").name === "linked");
+        __classPrivateFieldSet$2(module, _CyclicModule_status, {
+            name: "evaluating",
+            dfsAncestorIndex: index,
+            dfsIndex: index,
+            pendingAsyncDependencies: 0,
+            asyncEvaluating: false,
+            asyncEvaluatingId: -1,
+            asyncParentModules: [],
+        }, "f");
+        index += 1;
+        stack.push(module);
+        for (const requestedModuleSpecifer of __classPrivateFieldGet$2(module, _CyclicModule_requestedModules, "f")) {
+            let requiredModule = __classPrivateFieldGet$2(module, _CyclicModule_linkedModules, "f")
+                .get(requestedModuleSpecifer);
+            assert(requiredModule !== undefined);
+            index = __classPrivateFieldGet$2(CyclicModule, _a, "m", _CyclicModule_innerModuleEvaluation).call(CyclicModule, requiredModule, stack, index);
+            if (CyclicModule.isCyclicModule(requiredModule)) {
+                assert(__classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f").name === "evaluating"
+                    || __classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f").name === "evaluated");
+                if (__classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f").name === "evaluating") {
+                    assert(stack.includes(requiredModule));
+                }
+                else {
+                    assert(!stack.includes(requiredModule));
+                }
+                if (__classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f").name === "evaluating") {
+                    __classPrivateFieldGet$2(module, _CyclicModule_status, "f").dfsAncestorIndex = Math.min(__classPrivateFieldGet$2(module, _CyclicModule_status, "f").dfsAncestorIndex, __classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f").dfsAncestorIndex);
+                }
+                else {
+                    assert(__classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f").name === "evaluated");
+                    requiredModule = __classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f").cycleRoot;
+                    assert(CyclicModule.isCyclicModule(requiredModule));
+                    assert(__classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f").name === "evaluated");
+                }
+                if (__classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f").asyncEvaluating) {
+                    __classPrivateFieldGet$2(module, _CyclicModule_status, "f").pendingAsyncDependencies += 1;
+                    __classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f").asyncParentModules.push(module);
+                }
+            }
+        }
+        if (__classPrivateFieldGet$2(module, _CyclicModule_status, "f").pendingAsyncDependencies > 0 || __classPrivateFieldGet$2(module, _CyclicModule_async, "f")) {
+            assert(!__classPrivateFieldGet$2(module, _CyclicModule_status, "f").asyncEvaluating);
+            __classPrivateFieldGet$2(module, _CyclicModule_status, "f").asyncEvaluating = true;
+            __classPrivateFieldGet$2(module, _CyclicModule_status, "f").asyncEvaluatingId = asyncEvaluatingId;
+            asyncEvaluatingId += 1;
+            if (__classPrivateFieldGet$2(module, _CyclicModule_status, "f").pendingAsyncDependencies === 0) {
+                __classPrivateFieldGet$2(CyclicModule, _a, "m", _CyclicModule_executeAsyncModule).call(CyclicModule, module);
+            }
+        }
+        else {
+            void __classPrivateFieldGet$2(module, _CyclicModule_executeModule, "f").call(module);
+        }
+        assert(stack.filter((m) => m === module).length === 1);
+        assert(__classPrivateFieldGet$2(module, _CyclicModule_status, "f").dfsAncestorIndex <= __classPrivateFieldGet$2(module, _CyclicModule_status, "f").dfsIndex);
+        if (__classPrivateFieldGet$2(module, _CyclicModule_status, "f").dfsAncestorIndex === __classPrivateFieldGet$2(module, _CyclicModule_status, "f").dfsIndex) {
+            const cycleRoot = module;
+            let done = false;
+            while (!done) {
+                const requiredModule = stack.pop();
+                assert(requiredModule !== undefined);
+                assert(__classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f").name === "evaluating");
+                __classPrivateFieldSet$2(requiredModule, _CyclicModule_status, {
+                    name: "evaluated",
+                    dfsIndex: __classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f").dfsIndex,
+                    dfsAncestorIndex: __classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f").dfsAncestorIndex,
+                    asyncEvaluating: __classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f").asyncEvaluating,
+                    asyncEvaluatingId: __classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f").asyncEvaluatingId,
+                    asyncParentModules: __classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f")
+                        .asyncParentModules,
+                    pendingAsyncDependencies: __classPrivateFieldGet$2(requiredModule, _CyclicModule_status, "f")
+                        .pendingAsyncDependencies,
+                    cycleRoot,
+                }, "f");
+                if (requiredModule === module) {
+                    done = true;
+                }
+            }
+        }
+        return index;
+    }, _CyclicModule_executeAsyncModule = function _CyclicModule_executeAsyncModule(module) {
+        assert(__classPrivateFieldGet$2(module, _CyclicModule_status, "f").name === "evaluating"
+            || __classPrivateFieldGet$2(module, _CyclicModule_status, "f").name === "evaluated");
+        promiseTry(() => __classPrivateFieldGet$2(module, _CyclicModule_executeModule, "f").call(module)).then(() => __classPrivateFieldGet$2(CyclicModule, _a, "m", _CyclicModule_asyncModuleExecutionFulfilled).call(CyclicModule, module), (err) => {
+            __classPrivateFieldGet$2(CyclicModule, _a, "m", _CyclicModule_asyncModuleExecutionRejected).call(CyclicModule, module, err);
+        });
+    }, _CyclicModule_gatherAsyncParentCompletions = function _CyclicModule_gatherAsyncParentCompletions(module) {
+        assert(__classPrivateFieldGet$2(module, _CyclicModule_status, "f").name === "evaluated");
+        const execList = [];
+        for (const m of __classPrivateFieldGet$2(module, _CyclicModule_status, "f").asyncParentModules) {
+            assert(__classPrivateFieldGet$2(m, _CyclicModule_status, "f").name === "evaluated");
+            if (!execList.includes(m)
+                && __classPrivateFieldGet$2(__classPrivateFieldGet$2(m, _CyclicModule_status, "f").cycleRoot, _CyclicModule_evaluationError, "f") === undefined) {
+                assert(__classPrivateFieldGet$2(m, _CyclicModule_evaluationError, "f") === undefined);
+                assert(__classPrivateFieldGet$2(m, _CyclicModule_status, "f").asyncEvaluating);
+                assert(__classPrivateFieldGet$2(m, _CyclicModule_status, "f").pendingAsyncDependencies > 0);
+                __classPrivateFieldGet$2(m, _CyclicModule_status, "f").pendingAsyncDependencies -= 1;
+                if (__classPrivateFieldGet$2(m, _CyclicModule_status, "f").pendingAsyncDependencies === 0) {
+                    execList.push(m);
+                    if (!__classPrivateFieldGet$2(m, _CyclicModule_async, "f")) {
+                        execList.push(...__classPrivateFieldGet$2(CyclicModule, _a, "m", _CyclicModule_gatherAsyncParentCompletions).call(CyclicModule, m));
+                    }
+                }
+            }
+        }
+        return execList;
+    }, _CyclicModule_asyncModuleExecutionFulfilled = function _CyclicModule_asyncModuleExecutionFulfilled(module) {
+        assert(__classPrivateFieldGet$2(module, _CyclicModule_status, "f").name === "evaluated");
+        assert(__classPrivateFieldGet$2(module, _CyclicModule_evaluationError, "f") === undefined);
+        if (__classPrivateFieldGet$2(module, _CyclicModule_topLevelCapability, "f")) {
+            assert(module === __classPrivateFieldGet$2(module, _CyclicModule_status, "f").cycleRoot);
+            __classPrivateFieldGet$2(module, _CyclicModule_topLevelCapability, "f").resolve();
+        }
+        const execList = __classPrivateFieldGet$2(CyclicModule, _a, "m", _CyclicModule_gatherAsyncParentCompletions).call(CyclicModule, module);
+        execList.sort((a, b) => {
+            assert(__classPrivateFieldGet$2(a, _CyclicModule_status, "f").name === "evaluated");
+            assert(__classPrivateFieldGet$2(b, _CyclicModule_status, "f").name === "evaluated");
+            return __classPrivateFieldGet$2(a, _CyclicModule_status, "f").asyncEvaluatingId - __classPrivateFieldGet$2(b, _CyclicModule_status, "f").asyncEvaluatingId;
+        });
+        assert(execList.every((m) => {
+            return __classPrivateFieldGet$2(m, _CyclicModule_status, "f").name === "evaluated"
+                && __classPrivateFieldGet$2(m, _CyclicModule_status, "f").asyncEvaluating
+                && __classPrivateFieldGet$2(m, _CyclicModule_status, "f").pendingAsyncDependencies === 0
+                && __classPrivateFieldGet$2(m, _CyclicModule_evaluationError, "f") === undefined;
+        }));
+        for (const m of execList) {
+            assert(__classPrivateFieldGet$2(m, _CyclicModule_status, "f").name === "evaluated");
+            if (__classPrivateFieldGet$2(m, _CyclicModule_async, "f")) {
+                __classPrivateFieldGet$2(CyclicModule, _a, "m", _CyclicModule_executeAsyncModule).call(CyclicModule, m);
+            }
+            else {
+                try {
+                    void __classPrivateFieldGet$2(m, _CyclicModule_executeModule, "f").call(m);
+                    __classPrivateFieldGet$2(m, _CyclicModule_status, "f").asyncEvaluating = false;
+                    if (__classPrivateFieldGet$2(m, _CyclicModule_topLevelCapability, "f")) {
+                        assert(m === __classPrivateFieldGet$2(m, _CyclicModule_status, "f").cycleRoot);
+                        __classPrivateFieldGet$2(m, _CyclicModule_topLevelCapability, "f").resolve();
+                    }
+                }
+                catch (error) {
+                    __classPrivateFieldGet$2(CyclicModule, _a, "m", _CyclicModule_asyncModuleExecutionRejected).call(CyclicModule, m, error);
+                }
+            }
+        }
+    }, _CyclicModule_asyncModuleExecutionRejected = function _CyclicModule_asyncModuleExecutionRejected(module, error) {
+        assert(__classPrivateFieldGet$2(module, _CyclicModule_status, "f").name === "evaluated");
+        if (!__classPrivateFieldGet$2(module, _CyclicModule_status, "f").asyncEvaluating) {
+            assert(__classPrivateFieldGet$2(module, _CyclicModule_evaluationError, "f") !== undefined);
+            return;
+        }
+        assert(__classPrivateFieldGet$2(module, _CyclicModule_evaluationError, "f") === undefined);
+        __classPrivateFieldSet$2(module, _CyclicModule_evaluationError, error, "f");
+        __classPrivateFieldGet$2(module, _CyclicModule_status, "f").asyncEvaluating = false;
+        for (const m of __classPrivateFieldGet$2(module, _CyclicModule_status, "f").asyncParentModules) {
+            __classPrivateFieldGet$2(CyclicModule, _a, "m", _CyclicModule_asyncModuleExecutionRejected).call(CyclicModule, m, error);
+        }
+        if (__classPrivateFieldGet$2(module, _CyclicModule_topLevelCapability, "f")) {
+            assert(module === __classPrivateFieldGet$2(module, _CyclicModule_status, "f").cycleRoot);
+            __classPrivateFieldGet$2(module, _CyclicModule_topLevelCapability, "f").reject(error);
+        }
+    }, _CyclicModule_link = async function _CyclicModule_link() {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const module = this;
+        assert(__classPrivateFieldGet$2(module, _CyclicModule_status, "f").name !== "linking"
+            && __classPrivateFieldGet$2(module, _CyclicModule_status, "f").name !== "evaluating");
+        const stack = [];
+        try {
+            await __classPrivateFieldGet$2(CyclicModule, _a, "m", _CyclicModule_innerModuleLinking).call(CyclicModule, module, stack, 0);
+        }
+        catch (err) {
+            for (const m of stack) {
+                assert(__classPrivateFieldGet$2(m, _CyclicModule_status, "f").name === "linking");
+                __classPrivateFieldSet$2(m, _CyclicModule_status, { name: "unlinked" }, "f");
+            }
+            assert(__classPrivateFieldGet$2(module, _CyclicModule_status, "f").name === "unlinked");
+            throw err;
+        }
+        assert(__classPrivateFieldGet$2(module, _CyclicModule_status, "f").name === "linked"
+            || __classPrivateFieldGet$2(module, _CyclicModule_status, "f").name === "evaluated");
+        assert(stack.length === 0);
+    }, _CyclicModule_evaluate = function _CyclicModule_evaluate() {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        let module = this;
+        assert(__classPrivateFieldGet$2(module, _CyclicModule_status, "f").name === "linked"
+            || __classPrivateFieldGet$2(this, _CyclicModule_status, "f").name === "evaluated");
+        if (__classPrivateFieldGet$2(module, _CyclicModule_status, "f").name === "evaluated") {
+            module = __classPrivateFieldGet$2(module, _CyclicModule_status, "f").cycleRoot;
+        }
+        if (__classPrivateFieldGet$2(module, _CyclicModule_topLevelCapability, "f")) {
+            return __classPrivateFieldGet$2(module, _CyclicModule_topLevelCapability, "f").promise;
+        }
+        const stack = [];
+        const capability = new PromiseCapability();
+        __classPrivateFieldSet$2(module, _CyclicModule_topLevelCapability, capability, "f");
+        try {
+            __classPrivateFieldGet$2(CyclicModule, _a, "m", _CyclicModule_innerModuleEvaluation).call(CyclicModule, module, stack, 0);
+            assert(__classPrivateFieldGet$2(module, _CyclicModule_status, "f").name === "evaluated");
+            assert(__classPrivateFieldGet$2(module, _CyclicModule_evaluationError, "f") === undefined);
+            if (!__classPrivateFieldGet$2(module, _CyclicModule_status, "f").asyncEvaluating) {
+                capability.resolve();
+            }
+            assert(stack.length === 0);
+        }
+        catch (error) {
+            for (const m of stack) {
+                assert(__classPrivateFieldGet$2(m, _CyclicModule_status, "f").name === "evaluating");
+                __classPrivateFieldSet$2(m, _CyclicModule_status, {
+                    name: "evaluated",
+                    dfsIndex: __classPrivateFieldGet$2(m, _CyclicModule_status, "f").dfsIndex,
+                    dfsAncestorIndex: __classPrivateFieldGet$2(m, _CyclicModule_status, "f").dfsAncestorIndex,
+                    asyncEvaluating: __classPrivateFieldGet$2(m, _CyclicModule_status, "f").asyncEvaluating,
+                    asyncParentModules: __classPrivateFieldGet$2(m, _CyclicModule_status, "f").asyncParentModules,
+                    asyncEvaluatingId,
+                    pendingAsyncDependencies: __classPrivateFieldGet$2(m, _CyclicModule_status, "f")
+                        .pendingAsyncDependencies,
+                    cycleRoot: m,
+                }, "f");
+                asyncEvaluatingId += 1;
+                __classPrivateFieldSet$2(m, _CyclicModule_evaluationError, { error }, "f");
+                capability.reject(error);
+            }
+        }
+        return capability.promise;
+    };
     Object.freeze(CyclicModule);
     Object.freeze(CyclicModule.prototype);
 
-    var __classPrivateFieldSet$3 = (undefined && undefined.__classPrivateFieldSet) || function (receiver, privateMap, value) {
-        if (!privateMap.has(receiver)) {
-            throw new TypeError("attempted to set private field on non-instance");
-        }
-        privateMap.set(receiver, value);
-        return value;
+    var __classPrivateFieldSet$3 = (undefined && undefined.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+        if (kind === "m") throw new TypeError("Private method is not writable");
+        if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+        if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+        return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
     };
-    var __classPrivateFieldGet$3 = (undefined && undefined.__classPrivateFieldGet) || function (receiver, privateMap) {
-        if (!privateMap.has(receiver)) {
-            throw new TypeError("attempted to get private field on non-instance");
-        }
-        return privateMap.get(receiver);
+    var __classPrivateFieldGet$3 = (undefined && undefined.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+        if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+        if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+        return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
     };
-    var _string, _names;
+    var _NameGenerator_string, _NameGenerator_names;
     class NameGenerator {
         constructor(string) {
-            _string.set(this, void 0);
-            _names.set(this, new Map());
-            __classPrivateFieldSet$3(this, _string, string);
+            _NameGenerator_string.set(this, void 0);
+            _NameGenerator_names.set(this, new Map());
+            __classPrivateFieldSet$3(this, _NameGenerator_string, string, "f");
         }
         createName(prefix) {
-            let currentN = __classPrivateFieldGet$3(this, _names).get(prefix) ?? 0;
+            let currentN = __classPrivateFieldGet$3(this, _NameGenerator_names, "f").get(prefix) ?? 0;
             let name = `${prefix}$$${currentN}`;
-            while (__classPrivateFieldGet$3(this, _string).includes(name)) {
+            while (__classPrivateFieldGet$3(this, _NameGenerator_string, "f").includes(name)) {
                 currentN += 1;
                 name = `${prefix}$${currentN}`;
             }
-            __classPrivateFieldGet$3(this, _names).set(prefix, currentN + 1);
+            __classPrivateFieldGet$3(this, _NameGenerator_names, "f").set(prefix, currentN + 1);
             return name;
         }
     }
-    _string = new WeakMap(), _names = new WeakMap();
+    _NameGenerator_string = new WeakMap(), _NameGenerator_names = new WeakMap();
 
     function assertIsString(value) {
         if (typeof value !== "string") {
@@ -831,58 +814,56 @@ var ModuleShim = (function (exports) {
         };
     }
 
-    var __classPrivateFieldGet$4 = (undefined && undefined.__classPrivateFieldGet) || function (receiver, privateMap) {
-        if (!privateMap.has(receiver)) {
-            throw new TypeError("attempted to get private field on non-instance");
-        }
-        return privateMap.get(receiver);
+    var __classPrivateFieldGet$4 = (undefined && undefined.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+        if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+        if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+        return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
     };
-    var __classPrivateFieldSet$4 = (undefined && undefined.__classPrivateFieldSet) || function (receiver, privateMap, value) {
-        if (!privateMap.has(receiver)) {
-            throw new TypeError("attempted to set private field on non-instance");
-        }
-        privateMap.set(receiver, value);
-        return value;
+    var __classPrivateFieldSet$4 = (undefined && undefined.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+        if (kind === "m") throw new TypeError("Private method is not writable");
+        if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+        if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+        return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
     };
-    var _importEntries, _indirectExportEntries, _initializeImportMeta, _importModuleDynamically, _moduleEvaluationGenerator, _importMeta, _moduleScope, _localNamespace, _state;
+    var _GeneratorModuleEvaluator_importEntries, _GeneratorModuleEvaluator_indirectExportEntries, _GeneratorModuleEvaluator_initializeImportMeta, _GeneratorModuleEvaluator_importModuleDynamically, _GeneratorModuleEvaluator_moduleEvaluationGenerator, _GeneratorModuleEvaluator_importMeta, _GeneratorModuleEvaluator_moduleScope, _GeneratorModuleEvaluator_localNamespace, _GeneratorModuleEvaluator_state;
     class GeneratorModuleEvaluator {
         constructor({ source, parseResult, initializeImportMeta, importModuleDynamically, importEntries, indirectExportEntries, }) {
-            _importEntries.set(this, void 0);
-            _indirectExportEntries.set(this, void 0);
-            _initializeImportMeta.set(this, void 0);
-            _importModuleDynamically.set(this, void 0);
-            _moduleEvaluationGenerator.set(this, void 0);
-            _importMeta.set(this, Object.create(null));
-            _moduleScope.set(this, Object.create(null));
-            _localNamespace.set(this, void 0);
-            _state.set(this, "uninitialized");
+            _GeneratorModuleEvaluator_importEntries.set(this, void 0);
+            _GeneratorModuleEvaluator_indirectExportEntries.set(this, void 0);
+            _GeneratorModuleEvaluator_initializeImportMeta.set(this, void 0);
+            _GeneratorModuleEvaluator_importModuleDynamically.set(this, void 0);
+            _GeneratorModuleEvaluator_moduleEvaluationGenerator.set(this, void 0);
+            _GeneratorModuleEvaluator_importMeta.set(this, Object.create(null));
+            _GeneratorModuleEvaluator_moduleScope.set(this, Object.create(null));
+            _GeneratorModuleEvaluator_localNamespace.set(this, void 0);
+            _GeneratorModuleEvaluator_state.set(this, "uninitialized");
             const context = {
-                scope: __classPrivateFieldGet$4(this, _moduleScope),
+                scope: __classPrivateFieldGet$4(this, _GeneratorModuleEvaluator_moduleScope, "f"),
                 exports: Object.create(null),
             };
-            __classPrivateFieldSet$4(this, _moduleEvaluationGenerator, createModuleEvaluationGenerator(source, parseResult, context));
-            void __classPrivateFieldGet$4(this, _moduleEvaluationGenerator).generator.next();
-            __classPrivateFieldSet$4(this, _localNamespace, context.exports);
-            __classPrivateFieldSet$4(this, _initializeImportMeta, initializeImportMeta);
-            __classPrivateFieldSet$4(this, _importModuleDynamically, importModuleDynamically);
-            __classPrivateFieldSet$4(this, _importEntries, importEntries);
-            __classPrivateFieldSet$4(this, _indirectExportEntries, indirectExportEntries);
+            __classPrivateFieldSet$4(this, _GeneratorModuleEvaluator_moduleEvaluationGenerator, createModuleEvaluationGenerator(source, parseResult, context), "f");
+            void __classPrivateFieldGet$4(this, _GeneratorModuleEvaluator_moduleEvaluationGenerator, "f").generator.next();
+            __classPrivateFieldSet$4(this, _GeneratorModuleEvaluator_localNamespace, context.exports, "f");
+            __classPrivateFieldSet$4(this, _GeneratorModuleEvaluator_initializeImportMeta, initializeImportMeta, "f");
+            __classPrivateFieldSet$4(this, _GeneratorModuleEvaluator_importModuleDynamically, importModuleDynamically, "f");
+            __classPrivateFieldSet$4(this, _GeneratorModuleEvaluator_importEntries, importEntries, "f");
+            __classPrivateFieldSet$4(this, _GeneratorModuleEvaluator_indirectExportEntries, indirectExportEntries, "f");
         }
         get async() {
-            return __classPrivateFieldGet$4(this, _moduleEvaluationGenerator).isAsync;
+            return __classPrivateFieldGet$4(this, _GeneratorModuleEvaluator_moduleEvaluationGenerator, "f").isAsync;
         }
         initialize(linkedModules) {
-            if (__classPrivateFieldGet$4(this, _state) !== "uninitialized") {
+            if (__classPrivateFieldGet$4(this, _GeneratorModuleEvaluator_state, "f") !== "uninitialized") {
                 throw new Error("initialization has already started or completed");
             }
-            __classPrivateFieldSet$4(this, _state, "initializing");
-            Object.defineProperty(__classPrivateFieldGet$4(this, _moduleScope), __classPrivateFieldGet$4(this, _moduleEvaluationGenerator).importMetaName, {
-                get: () => __classPrivateFieldGet$4(this, _importMeta),
+            __classPrivateFieldSet$4(this, _GeneratorModuleEvaluator_state, "initializing", "f");
+            Object.defineProperty(__classPrivateFieldGet$4(this, _GeneratorModuleEvaluator_moduleScope, "f"), __classPrivateFieldGet$4(this, _GeneratorModuleEvaluator_moduleEvaluationGenerator, "f").importMetaName, {
+                get: () => __classPrivateFieldGet$4(this, _GeneratorModuleEvaluator_importMeta, "f"),
             });
-            Object.defineProperty(__classPrivateFieldGet$4(this, _moduleScope), __classPrivateFieldGet$4(this, _moduleEvaluationGenerator).dynamicImportName, {
-                get: () => __classPrivateFieldGet$4(this, _importModuleDynamically),
+            Object.defineProperty(__classPrivateFieldGet$4(this, _GeneratorModuleEvaluator_moduleScope, "f"), __classPrivateFieldGet$4(this, _GeneratorModuleEvaluator_moduleEvaluationGenerator, "f").dynamicImportName, {
+                get: () => __classPrivateFieldGet$4(this, _GeneratorModuleEvaluator_importModuleDynamically, "f"),
             });
-            for (const entry of __classPrivateFieldGet$4(this, _importEntries)) {
+            for (const entry of __classPrivateFieldGet$4(this, _GeneratorModuleEvaluator_importEntries, "f")) {
                 const linkedModule = linkedModules.get(entry.specifier);
                 if (!linkedModule) {
                     throw new Error("linkedModules must contain all imported modules");
@@ -898,21 +879,21 @@ var ModuleShim = (function (exports) {
                     }
                 }
                 if (getBinding !== undefined) {
-                    Object.defineProperty(__classPrivateFieldGet$4(this, _moduleScope), entry.localName, {
+                    Object.defineProperty(__classPrivateFieldGet$4(this, _GeneratorModuleEvaluator_moduleScope, "f"), entry.localName, {
                         get: getBinding,
                     });
                 }
             }
-            __classPrivateFieldSet$4(this, _state, "initialized");
+            __classPrivateFieldSet$4(this, _GeneratorModuleEvaluator_state, "initialized", "f");
         }
         execute(linkedModules) {
-            if (__classPrivateFieldGet$4(this, _state) !== "initialized") {
+            if (__classPrivateFieldGet$4(this, _GeneratorModuleEvaluator_state, "f") !== "initialized") {
                 throw new Error("evaluator must be initialized to evaluate");
             }
-            __classPrivateFieldSet$4(this, _state, "evaluating");
+            __classPrivateFieldSet$4(this, _GeneratorModuleEvaluator_state, "evaluating", "f");
             const entries = [
-                ...__classPrivateFieldGet$4(this, _importEntries),
-                ...__classPrivateFieldGet$4(this, _indirectExportEntries),
+                ...__classPrivateFieldGet$4(this, _GeneratorModuleEvaluator_importEntries, "f"),
+                ...__classPrivateFieldGet$4(this, _GeneratorModuleEvaluator_indirectExportEntries, "f"),
             ];
             for (const entry of entries) {
                 const linkedModule = linkedModules.get(entry.specifier);
@@ -929,25 +910,25 @@ var ModuleShim = (function (exports) {
                     }
                 }
             }
-            __classPrivateFieldGet$4(this, _initializeImportMeta).call(this, __classPrivateFieldGet$4(this, _importMeta));
-            if (__classPrivateFieldGet$4(this, _moduleEvaluationGenerator).isAsync) {
-                const result = __classPrivateFieldGet$4(this, _moduleEvaluationGenerator).generator.next();
+            __classPrivateFieldGet$4(this, _GeneratorModuleEvaluator_initializeImportMeta, "f").call(this, __classPrivateFieldGet$4(this, _GeneratorModuleEvaluator_importMeta, "f"));
+            if (__classPrivateFieldGet$4(this, _GeneratorModuleEvaluator_moduleEvaluationGenerator, "f").isAsync) {
+                const result = __classPrivateFieldGet$4(this, _GeneratorModuleEvaluator_moduleEvaluationGenerator, "f").generator.next();
                 const finishEvaluation = () => {
-                    __classPrivateFieldSet$4(this, _state, "evaluated");
+                    __classPrivateFieldSet$4(this, _GeneratorModuleEvaluator_state, "evaluated", "f");
                 };
                 return result
                     .then(() => undefined)
                     .finally(finishEvaluation);
             }
-            __classPrivateFieldGet$4(this, _moduleEvaluationGenerator).generator.next();
-            __classPrivateFieldSet$4(this, _state, "evaluated");
+            __classPrivateFieldGet$4(this, _GeneratorModuleEvaluator_moduleEvaluationGenerator, "f").generator.next();
+            __classPrivateFieldSet$4(this, _GeneratorModuleEvaluator_state, "evaluated", "f");
             return undefined;
         }
         getLocalBinding(name) {
-            return () => __classPrivateFieldGet$4(this, _localNamespace)[name];
+            return () => __classPrivateFieldGet$4(this, _GeneratorModuleEvaluator_localNamespace, "f")[name];
         }
     }
-    _importEntries = new WeakMap(), _indirectExportEntries = new WeakMap(), _initializeImportMeta = new WeakMap(), _importModuleDynamically = new WeakMap(), _moduleEvaluationGenerator = new WeakMap(), _importMeta = new WeakMap(), _moduleScope = new WeakMap(), _localNamespace = new WeakMap(), _state = new WeakMap();
+    _GeneratorModuleEvaluator_importEntries = new WeakMap(), _GeneratorModuleEvaluator_indirectExportEntries = new WeakMap(), _GeneratorModuleEvaluator_initializeImportMeta = new WeakMap(), _GeneratorModuleEvaluator_importModuleDynamically = new WeakMap(), _GeneratorModuleEvaluator_moduleEvaluationGenerator = new WeakMap(), _GeneratorModuleEvaluator_importMeta = new WeakMap(), _GeneratorModuleEvaluator_moduleScope = new WeakMap(), _GeneratorModuleEvaluator_localNamespace = new WeakMap(), _GeneratorModuleEvaluator_state = new WeakMap();
 
     function getModuleEntries(parseResult) {
         const importEntries = parseResult.imports
@@ -1193,20 +1174,18 @@ var ModuleShim = (function (exports) {
         };
     }
 
-    var __classPrivateFieldGet$5 = (undefined && undefined.__classPrivateFieldGet) || function (receiver, privateMap) {
-        if (!privateMap.has(receiver)) {
-            throw new TypeError("attempted to get private field on non-instance");
-        }
-        return privateMap.get(receiver);
+    var __classPrivateFieldGet$5 = (undefined && undefined.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+        if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+        if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+        return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
     };
-    var __classPrivateFieldSet$5 = (undefined && undefined.__classPrivateFieldSet) || function (receiver, privateMap, value) {
-        if (!privateMap.has(receiver)) {
-            throw new TypeError("attempted to set private field on non-instance");
-        }
-        privateMap.set(receiver, value);
-        return value;
+    var __classPrivateFieldSet$5 = (undefined && undefined.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+        if (kind === "m") throw new TypeError("Private method is not writable");
+        if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+        if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+        return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
     };
-    var _source, _localExportEntries, _indirectExportEntries$1, _starExportEntries, _moduleEvaluator, _getExportedNames$1, _resolveExport$1;
+    var _SourceTextModule_instances, _SourceTextModule_source, _SourceTextModule_localExportEntries, _SourceTextModule_indirectExportEntries, _SourceTextModule_starExportEntries, _SourceTextModule_moduleEvaluator, _SourceTextModule_getExportedNames, _SourceTextModule_resolveExport;
     class SourceTextModule extends CyclicModule {
         constructor({ async, source, localExportEntries, indirectExportEntries, starExportEntries, moduleEvaluator, requestedModules, resolveModule, }) {
             super({
@@ -1221,110 +1200,33 @@ var ModuleShim = (function (exports) {
                     const linkedModules = CyclicModule.linkedModules(this);
                     return moduleEvaluator.execute(linkedModules);
                 },
-                getExportedNames: (...args) => __classPrivateFieldGet$5(this, _getExportedNames$1).call(this, ...args),
-                resolveExport: (...args) => __classPrivateFieldGet$5(this, _resolveExport$1).call(this, ...args),
+                getExportedNames: (...args) => __classPrivateFieldGet$5(this, _SourceTextModule_instances, "m", _SourceTextModule_getExportedNames).call(this, ...args),
+                resolveExport: (...args) => __classPrivateFieldGet$5(this, _SourceTextModule_instances, "m", _SourceTextModule_resolveExport).call(this, ...args),
             });
-            _source.set(this, void 0);
-            _localExportEntries.set(this, void 0);
-            _indirectExportEntries$1.set(this, void 0);
-            _starExportEntries.set(this, void 0);
-            _moduleEvaluator.set(this, void 0);
-            _getExportedNames$1.set(this, (exportStarSet) => {
-                const linkedModules = CyclicModule.linkedModules(this);
-                if (exportStarSet.has(this)) {
-                    return [];
-                }
-                exportStarSet.add(this);
-                const exportedNames = new Set();
-                for (const exportEntry of __classPrivateFieldGet$5(this, _localExportEntries)) {
-                    exportedNames.add(exportEntry.exportName);
-                }
-                for (const exportEntry of __classPrivateFieldGet$5(this, _indirectExportEntries$1)) {
-                    exportedNames.add(exportEntry.exportName);
-                }
-                for (const exportEntry of __classPrivateFieldGet$5(this, _starExportEntries)) {
-                    const requestedModule = linkedModules.get(exportEntry.specifier);
-                    const starNames = Module.getExportedNames(requestedModule, exportStarSet);
-                    for (const name of starNames) {
-                        if (name !== "default") {
-                            exportedNames.add(name);
-                        }
-                    }
-                }
-                return [...exportedNames];
-            });
-            _resolveExport$1.set(this, (exportName, resolveSet = []) => {
-                const linkedModules = CyclicModule.linkedModules(this);
-                for (const record of resolveSet) {
-                    if (record.module === this && record.exportName === exportName) {
-                        return null;
-                    }
-                }
-                resolveSet.push({ module: this, exportName });
-                for (const exportEntry of __classPrivateFieldGet$5(this, _localExportEntries)) {
-                    if (exportEntry.exportName === exportName) {
-                        return {
-                            module: this,
-                            bindingName: exportEntry.localName,
-                            getBinding: __classPrivateFieldGet$5(this, _moduleEvaluator).getLocalBinding(exportEntry.exportName),
-                        };
-                    }
-                }
-                for (const exportEntry of __classPrivateFieldGet$5(this, _indirectExportEntries$1)) {
-                    if (exportEntry.exportName === exportName) {
-                        const importedModule = linkedModules
-                            .get(exportEntry.specifier);
-                        if (exportEntry.importName === NAMESPACE) {
-                            return {
-                                module: this,
-                                bindingName: NAMESPACE,
-                                getBinding: () => Module.namespace(importedModule),
-                            };
-                        }
-                        return Module.resolveExport(importedModule, exportEntry.importName, resolveSet);
-                    }
-                }
-                if (exportName === "default") {
-                    return null;
-                }
-                let starResolution = null;
-                for (const exportEntry of __classPrivateFieldGet$5(this, _starExportEntries)) {
-                    const importedModule = linkedModules
-                        .get(exportEntry.specifier);
-                    const resolution = Module.resolveExport(importedModule, exportName, resolveSet);
-                    if (resolution === AMBIGUOUS) {
-                        return AMBIGUOUS;
-                    }
-                    if (resolution !== null) {
-                        if (starResolution === null) {
-                            starResolution = resolution;
-                        }
-                        else if (resolution.module !== starResolution.module
-                            || resolution.bindingName !== starResolution.bindingName) {
-                            return AMBIGUOUS;
-                        }
-                    }
-                }
-                return starResolution;
-            });
-            __classPrivateFieldSet$5(this, _source, source);
-            __classPrivateFieldSet$5(this, _localExportEntries, localExportEntries);
-            __classPrivateFieldSet$5(this, _indirectExportEntries$1, indirectExportEntries);
-            __classPrivateFieldSet$5(this, _starExportEntries, starExportEntries);
-            __classPrivateFieldSet$5(this, _moduleEvaluator, moduleEvaluator);
+            _SourceTextModule_instances.add(this);
+            _SourceTextModule_source.set(this, void 0);
+            _SourceTextModule_localExportEntries.set(this, void 0);
+            _SourceTextModule_indirectExportEntries.set(this, void 0);
+            _SourceTextModule_starExportEntries.set(this, void 0);
+            _SourceTextModule_moduleEvaluator.set(this, void 0);
+            __classPrivateFieldSet$5(this, _SourceTextModule_source, source, "f");
+            __classPrivateFieldSet$5(this, _SourceTextModule_localExportEntries, localExportEntries, "f");
+            __classPrivateFieldSet$5(this, _SourceTextModule_indirectExportEntries, indirectExportEntries, "f");
+            __classPrivateFieldSet$5(this, _SourceTextModule_starExportEntries, starExportEntries, "f");
+            __classPrivateFieldSet$5(this, _SourceTextModule_moduleEvaluator, moduleEvaluator, "f");
             Object.freeze(this);
         }
         static isSourceTextModule(value) {
             try {
                 // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                __classPrivateFieldGet$5(value, _source);
+                __classPrivateFieldGet$5(value, _SourceTextModule_source, "f");
                 return true;
             }
             catch {
                 return false;
             }
         }
-        static async create({ source, resolveModule, importModuleDynamically, initializeImportMeta, }) {
+        static async fromSource({ source, resolveModule, importModuleDynamically, initializeImportMeta, }) {
             const parseResult = await parse(source);
             const moduleEntries = getModuleEntries(parseResult);
             const requestedModules = [
@@ -1372,10 +1274,87 @@ var ModuleShim = (function (exports) {
             return module;
         }
         get source() {
-            return __classPrivateFieldGet$5(this, _source);
+            return __classPrivateFieldGet$5(this, _SourceTextModule_source, "f");
         }
     }
-    _source = new WeakMap(), _localExportEntries = new WeakMap(), _indirectExportEntries$1 = new WeakMap(), _starExportEntries = new WeakMap(), _moduleEvaluator = new WeakMap(), _getExportedNames$1 = new WeakMap(), _resolveExport$1 = new WeakMap();
+    _SourceTextModule_source = new WeakMap(), _SourceTextModule_localExportEntries = new WeakMap(), _SourceTextModule_indirectExportEntries = new WeakMap(), _SourceTextModule_starExportEntries = new WeakMap(), _SourceTextModule_moduleEvaluator = new WeakMap(), _SourceTextModule_instances = new WeakSet(), _SourceTextModule_getExportedNames = function _SourceTextModule_getExportedNames(exportStarSet) {
+        const linkedModules = CyclicModule.linkedModules(this);
+        if (exportStarSet.has(this)) {
+            return [];
+        }
+        exportStarSet.add(this);
+        const exportedNames = new Set();
+        for (const exportEntry of __classPrivateFieldGet$5(this, _SourceTextModule_localExportEntries, "f")) {
+            exportedNames.add(exportEntry.exportName);
+        }
+        for (const exportEntry of __classPrivateFieldGet$5(this, _SourceTextModule_indirectExportEntries, "f")) {
+            exportedNames.add(exportEntry.exportName);
+        }
+        for (const exportEntry of __classPrivateFieldGet$5(this, _SourceTextModule_starExportEntries, "f")) {
+            const requestedModule = linkedModules.get(exportEntry.specifier);
+            const starNames = Module.getExportedNames(requestedModule, exportStarSet);
+            for (const name of starNames) {
+                if (name !== "default") {
+                    exportedNames.add(name);
+                }
+            }
+        }
+        return [...exportedNames];
+    }, _SourceTextModule_resolveExport = function _SourceTextModule_resolveExport(exportName, resolveSet = []) {
+        const linkedModules = CyclicModule.linkedModules(this);
+        for (const record of resolveSet) {
+            if (record.module === this && record.exportName === exportName) {
+                return null;
+            }
+        }
+        resolveSet.push({ module: this, exportName });
+        for (const exportEntry of __classPrivateFieldGet$5(this, _SourceTextModule_localExportEntries, "f")) {
+            if (exportEntry.exportName === exportName) {
+                return {
+                    module: this,
+                    bindingName: exportEntry.localName,
+                    getBinding: __classPrivateFieldGet$5(this, _SourceTextModule_moduleEvaluator, "f")
+                        .getLocalBinding(exportEntry.exportName),
+                };
+            }
+        }
+        for (const exportEntry of __classPrivateFieldGet$5(this, _SourceTextModule_indirectExportEntries, "f")) {
+            if (exportEntry.exportName === exportName) {
+                const importedModule = linkedModules
+                    .get(exportEntry.specifier);
+                if (exportEntry.importName === NAMESPACE) {
+                    return {
+                        module: this,
+                        bindingName: NAMESPACE,
+                        getBinding: () => Module.namespace(importedModule),
+                    };
+                }
+                return Module.resolveExport(importedModule, exportEntry.importName, resolveSet);
+            }
+        }
+        if (exportName === "default") {
+            return null;
+        }
+        let starResolution = null;
+        for (const exportEntry of __classPrivateFieldGet$5(this, _SourceTextModule_starExportEntries, "f")) {
+            const importedModule = linkedModules
+                .get(exportEntry.specifier);
+            const resolution = Module.resolveExport(importedModule, exportName, resolveSet);
+            if (resolution === AMBIGUOUS) {
+                return AMBIGUOUS;
+            }
+            if (resolution !== null) {
+                if (starResolution === null) {
+                    starResolution = resolution;
+                }
+                else if (resolution.module !== starResolution.module
+                    || resolution.bindingName !== starResolution.bindingName) {
+                    return AMBIGUOUS;
+                }
+            }
+        }
+        return starResolution;
+    };
     Object.freeze(SourceTextModule);
     Object.freeze(SourceTextModule.prototype);
 

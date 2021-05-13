@@ -3,6 +3,10 @@ import type { ResolvedExport, ResolveSet } from "./Module.js";
 import ReadonlyMap from "./ReadonlyMap.js";
 import assert from "./assert.js";
 
+async function promiseTry<T>(func: () => Promise<T> | T): Promise<T> {
+    return await func();
+}
+
 class PromiseCapability<T> {
     #resolve!: (value: T | Promise<T>) => void;
     #reject!: (error: any) => void;
@@ -48,6 +52,7 @@ type EvaluatingState = {
     asyncEvaluating: boolean,
     asyncParentModules: Array<CyclicModule>,
     pendingAsyncDependencies: number,
+    asyncEvaluatingId: number,
 };
 
 type EvaluatedState = {
@@ -56,7 +61,9 @@ type EvaluatedState = {
     dfsAncestorIndex: number,
     asyncParentModules: Array<CyclicModule>,
     asyncEvaluating: boolean,
+    asyncEvaluatingId: number,
     pendingAsyncDependencies: number,
+    cycleRoot: CyclicModule,
 };
 
 export type CyclicModuleStatus
@@ -78,6 +85,8 @@ export type CyclicModuleOptions = {
         resolveSet: ResolveSet,
     ) => ResolvedExport,
 };
+
+let asyncEvaluatingId: number = 0;
 
 export default class CyclicModule extends Module {
     static isCyclicModule(value: any): value is CyclicModule {
@@ -113,6 +122,283 @@ export default class CyclicModule extends Module {
         }
         cyclicModule.#linkedModules.set(specifier, linkedModule);
         return linkedModule;
+    }
+
+    static async #innerModuleLinking(
+        module: Module,
+        stack: Array<CyclicModule>,
+        index: number,
+    ): Promise<number> {
+        if (!CyclicModule.isCyclicModule(module)) {
+            await Module.link(module);
+            return index;
+        }
+        if (module.#status.name === "linking"
+        || module.#status.name === "linked"
+        || module.#status.name === "evaluated") {
+            return index;
+        }
+        assert(module.#status.name === "unlinked");
+        module.#status = {
+            name: "linking",
+            dfsAncestorIndex: index,
+            dfsIndex: index,
+        };
+        index += 1;
+        stack.push(module);
+        for (const requiredModuleSpecifier of module.#requestedModules) {
+            const requiredModule = await CyclicModule.resolveModule(
+                module,
+                requiredModuleSpecifier,
+            );
+            index = await CyclicModule.#innerModuleLinking(
+                requiredModule,
+                stack,
+                index,
+            );
+            if (CyclicModule.isCyclicModule(requiredModule)) {
+                assert(
+                    requiredModule.#status.name === "linking"
+                    || requiredModule.#status.name === "linked"
+                    || requiredModule.#status.name === "evaluated",
+                );
+                if (requiredModule.#status.name === "linking") {
+                    assert(stack.includes(requiredModule));
+                    // eslint-disable-next-line require-atomic-updates
+                    module.#status.dfsAncestorIndex = Math.min(
+                        module.#status.dfsAncestorIndex,
+                        requiredModule.#status.dfsAncestorIndex,
+                    );
+                } else {
+                    assert(!stack.includes(requiredModule));
+                }
+            }
+        }
+        module.#initializeEnvironment();
+        assert(stack.filter((m) => m === module).length === 1);
+        assert(module.#status.dfsAncestorIndex <= module.#status.dfsIndex);
+
+        if (module.#status.dfsAncestorIndex === module.#status.dfsIndex) {
+            let done = false;
+            while (!done) {
+                const requiredModule = stack.pop();
+                assert(requiredModule !== undefined);
+                requiredModule.#status = { name: "linked" };
+                if (module === requiredModule) {
+                    done = true;
+                }
+            }
+        }
+
+        return index;
+    }
+
+    static #innerModuleEvaluation(
+        module: Module,
+        stack: Array<CyclicModule>,
+        index: number,
+    ): number {
+        if (!CyclicModule.isCyclicModule(module)) {
+            // TODO: Change this to work differently
+            void module.evaluate();
+            return index;
+        }
+        if (module.#status.name === "evaluated") {
+            if (module.#evaluationError) {
+                throw module.#evaluationError.error;
+            }
+            return index;
+        }
+        if (module.#status.name === "evaluating") {
+            return index;
+        }
+        assert(module.#status.name === "linked");
+        module.#status = {
+            name: "evaluating",
+            dfsAncestorIndex: index,
+            dfsIndex: index,
+            pendingAsyncDependencies: 0,
+            asyncEvaluating: false,
+            asyncEvaluatingId: -1,
+            asyncParentModules: [],
+        };
+        index += 1;
+        stack.push(module);
+        for (const requestedModuleSpecifer of module.#requestedModules) {
+            let requiredModule = module.#linkedModules
+                .get(requestedModuleSpecifer);
+            assert(requiredModule !== undefined);
+            index = CyclicModule.#innerModuleEvaluation(
+                requiredModule,
+                stack,
+                index,
+            );
+            if (CyclicModule.isCyclicModule(requiredModule)) {
+                assert(
+                    requiredModule.#status.name === "evaluating"
+                    || requiredModule.#status.name === "evaluated",
+                );
+                if (requiredModule.#status.name === "evaluating") {
+                    assert(stack.includes(requiredModule));
+                } else {
+                    assert(!stack.includes(requiredModule));
+                }
+
+                if (requiredModule.#status.name === "evaluating") {
+                    module.#status.dfsAncestorIndex = Math.min(
+                        module.#status.dfsAncestorIndex,
+                        requiredModule.#status.dfsAncestorIndex,
+                    );
+                } else {
+                    assert(requiredModule.#status.name === "evaluated");
+                    requiredModule = requiredModule.#status.cycleRoot;
+                    assert(CyclicModule.isCyclicModule(requiredModule));
+                    assert(requiredModule.#status.name === "evaluated");
+                }
+                if (requiredModule.#status.asyncEvaluating) {
+                    module.#status.pendingAsyncDependencies += 1;
+                    requiredModule.#status.asyncParentModules.push(module);
+                }
+            }
+        }
+        if (module.#status.pendingAsyncDependencies > 0 || module.#async) {
+            assert(!module.#status.asyncEvaluating);
+            module.#status.asyncEvaluating = true;
+            module.#status.asyncEvaluatingId = asyncEvaluatingId;
+            asyncEvaluatingId += 1;
+            if (module.#status.pendingAsyncDependencies === 0) {
+                CyclicModule.#executeAsyncModule(module);
+            }
+        } else {
+            void module.#executeModule();
+        }
+        assert(stack.filter((m) => m === module).length === 1);
+        assert(module.#status.dfsAncestorIndex <= module.#status.dfsIndex);
+        if (module.#status.dfsAncestorIndex === module.#status.dfsIndex) {
+            const cycleRoot = module;
+            let done = false;
+            while (!done) {
+                const requiredModule = stack.pop();
+                assert(requiredModule !== undefined);
+                assert(requiredModule.#status.name === "evaluating");
+                requiredModule.#status = {
+                    name: "evaluated",
+                    dfsIndex: requiredModule.#status.dfsIndex,
+                    dfsAncestorIndex: requiredModule.#status.dfsAncestorIndex,
+                    asyncEvaluating: requiredModule.#status.asyncEvaluating,
+                    asyncEvaluatingId: requiredModule.#status.asyncEvaluatingId,
+                    asyncParentModules: requiredModule.#status
+                        .asyncParentModules,
+                    pendingAsyncDependencies: requiredModule.#status
+                        .pendingAsyncDependencies,
+                    cycleRoot,
+                };
+                if (requiredModule === module) {
+                    done = true;
+                }
+            }
+        }
+        return index;
+    }
+
+    static #executeAsyncModule(module: CyclicModule): void {
+        assert(
+            module.#status.name === "evaluating"
+            || module.#status.name === "evaluated",
+        );
+        promiseTry<void>(() => module.#executeModule()).then(
+            () => CyclicModule.#asyncModuleExecutionFulfilled(module),
+            (err) => {
+                CyclicModule.#asyncModuleExecutionRejected(module, err);
+            },
+        );
+    }
+
+    static #gatherAsyncParentCompletions(
+        module: CyclicModule,
+    ): Array<CyclicModule> {
+        assert(module.#status.name === "evaluated");
+        const execList: Array<CyclicModule> = [];
+        for (const m of module.#status.asyncParentModules) {
+            assert(m.#status.name === "evaluated");
+            if (!execList.includes(m)
+            && m.#status.cycleRoot.#evaluationError === undefined) {
+                assert(m.#evaluationError === undefined);
+                assert(m.#status.asyncEvaluating);
+                assert(m.#status.pendingAsyncDependencies > 0);
+                m.#status.pendingAsyncDependencies -= 1;
+                if (m.#status.pendingAsyncDependencies === 0) {
+                    execList.push(m);
+                    if (!m.#async) {
+                        execList.push(
+                            ...CyclicModule
+                                .#gatherAsyncParentCompletions(m),
+                        );
+                    }
+                }
+            }
+        }
+        return execList;
+    }
+
+    static #asyncModuleExecutionFulfilled(module: CyclicModule): void {
+        assert(module.#status.name === "evaluated");
+        assert(module.#evaluationError === undefined);
+        if (module.#topLevelCapability) {
+            assert(module === module.#status.cycleRoot);
+            module.#topLevelCapability.resolve();
+        }
+        const execList: Array<CyclicModule> = CyclicModule
+            .#gatherAsyncParentCompletions(module);
+        execList.sort((a, b) => {
+            assert(a.#status.name === "evaluated");
+            assert(b.#status.name === "evaluated");
+            return a.#status.asyncEvaluatingId - b.#status.asyncEvaluatingId;
+        });
+        assert(execList.every((m) => {
+            return m.#status.name === "evaluated"
+                && m.#status.asyncEvaluating
+                && m.#status.pendingAsyncDependencies === 0
+                && m.#evaluationError === undefined;
+        }));
+        for (const m of execList) {
+            assert(m.#status.name === "evaluated");
+            if (m.#async) {
+                CyclicModule.#executeAsyncModule(m);
+            } else {
+                try {
+                    void m.#executeModule();
+                    m.#status.asyncEvaluating = false;
+                    if (m.#topLevelCapability) {
+                        assert(m === m.#status.cycleRoot);
+                        m.#topLevelCapability.resolve();
+                    }
+                } catch (error: any) {
+                    CyclicModule.#asyncModuleExecutionRejected(m, error);
+                }
+            }
+        }
+    }
+
+    static #asyncModuleExecutionRejected(
+        module: CyclicModule,
+        error: any,
+    ): void {
+        assert(module.#status.name === "evaluated");
+        if (!module.#status.asyncEvaluating) {
+            assert(module.#evaluationError !== undefined);
+            return;
+        }
+        assert(module.#evaluationError === undefined);
+        module.#evaluationError = error;
+        module.#status.asyncEvaluating = false;
+        for (const m of module.#status.asyncParentModules) {
+            CyclicModule.#asyncModuleExecutionRejected(m, error);
+        }
+        if (module.#topLevelCapability) {
+            assert(module === module.#status.cycleRoot);
+            module.#topLevelCapability.reject(error);
+        }
     }
 
     readonly #requestedModules: ReadonlyArray<string>;
@@ -202,375 +488,81 @@ export default class CyclicModule extends Module {
         return await CyclicModule.resolveModule(this, specifier);
     }
 
-    #linkRequiredModule = async (
-        requiredSpecifier: string,
-        stack: Array<CyclicModule>,
-        index: number,
-    ): Promise<number> => {
-        assert(this.#status.name === "linking");
-        const requiredModule = await CyclicModule.resolveModule(
-            this,
-            requiredSpecifier,
+    async #link(): Promise<void> {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const module = this;
+        assert(
+            module.#status.name !== "linking"
+            && module.#status.name !== "evaluating",
         );
-
-        if (CyclicModule.isCyclicModule(requiredModule)) {
-            index = await requiredModule.#innerModuleLinking(stack, index);
-            assert(
-                requiredModule.#status.name === "linking"
-                || requiredModule.#status.name === "linked"
-                || requiredModule.#status.name === "evaluated",
-            );
-
-            if (requiredModule.#status.name === "linking") {
-                assert(stack.includes(requiredModule));
-                this.#status.dfsAncestorIndex = Math.min(
-                    this.#status.dfsAncestorIndex,
-                    requiredModule.#status.dfsAncestorIndex,
-                );
-            }
-        } else {
-            await requiredModule.link();
-        }
-        return index;
-    };
-
-    #finalizeLinking = (stack: Array<CyclicModule>): void => {
-        assert(this.#status.name === "linking");
-        if (this.#status.dfsAncestorIndex === this.#status.dfsIndex) {
-            let done = false;
-            while (!done) {
-                const requiredModule = stack.pop()!;
-                requiredModule.#status = { name: "linked" };
-                if (requiredModule === this) {
-                    done = true;
-                }
-            }
-        }
-    };
-
-    #innerModuleLinking = async (
-        stack: Array<CyclicModule>,
-        index: number,
-    ): Promise<number> => {
-        if (this.#status.name === "linking"
-        || this.#status.name === "linked"
-        || this.#status.name === "evaluated") {
-            return index;
-        }
-        assert(this.#status.name === "unlinked");
-        this.#status = {
-            name: "linking",
-            dfsIndex: index,
-            dfsAncestorIndex: index,
-        };
-        index += 1;
-        stack.push(this);
-        for (const required of this.#requestedModules) {
-            await this.#linkRequiredModule(required, stack, index);
-        }
-        this.#initializeEnvironment();
-        this.#finalizeLinking(stack);
-        return index;
-    };
-
-    #link = async (): Promise<void> => {
-        if (this.#status.name === "linking") {
-            throw new TypeError("module can't be linked again during linking");
-        }
-        if (this.#status.name === "evaluating") {
-            throw new TypeError("module can't be linked during evaluation");
-        }
-        if (this.#status.name !== "unlinked") {
-            return;
-        }
         const stack: Array<CyclicModule> = [];
         try {
-            await this.#innerModuleLinking(stack, 0);
-        } catch (error: unknown) {
-            for (const module of stack) {
-                assert(module.#status.name === "linking");
-                module.#status = { name: "unlinked" };
-                module.#linkedModules.clear();
+            await CyclicModule.#innerModuleLinking(module, stack, 0);
+        } catch (err: unknown) {
+            for (const m of stack) {
+                assert(m.#status.name === "linking");
+                m.#status = { name: "unlinked" };
             }
-            assert(this.#status.name === "unlinked");
-            throw error;
+            assert(module.#status.name === "unlinked");
+            throw err;
         }
+        assert(
+            module.#status.name === "linked"
+            || module.#status.name === "evaluated",
+        );
         assert(stack.length === 0);
-    };
+    }
 
-    #getAsyncCycleRoot = (module: CyclicModule): CyclicModule => {
-        if (module.#status.name !== "evaluated") {
-            throw new Error(
-                "Should only get async cycle root after evaluation",
-            );
-        }
-        if (module.#status.asyncParentModules.length === 0) {
-            return module;
-        }
-        while (module.#status.dfsIndex > module.#status.dfsAncestorIndex) {
-            assert(module.#status.asyncParentModules.length > 0);
-            const nextCycleModule = module.#status.asyncParentModules[0];
-            assert(
-                nextCycleModule.#status.name === "evaluating"
-                || nextCycleModule.#status.name === "evaluated",
-            );
-            assert(
-                nextCycleModule.#status.dfsAncestorIndex
-                <= module.#status.dfsAncestorIndex,
-            );
-            module = nextCycleModule;
-            assert(
-                module.#status.name === "evaluating"
-                || module.#status.name === "evaluated",
-            );
-        }
-        assert(module.#status.dfsIndex === module.#status.dfsAncestorIndex);
-        return module;
-    };
-
-    #onDependencyFinishedSuccessfully = (): void => {
+    #evaluate(): Promise<void> {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        let module: CyclicModule = this;
         assert(
-            this.#status.name === "evaluating"
+            module.#status.name === "linked"
             || this.#status.name === "evaluated",
         );
-        this.#status.pendingAsyncDependencies -= 1;
-        if (this.#status.pendingAsyncDependencies === 0
-        && this.#evaluationError === undefined) {
-            assert(this.#status.asyncEvaluating);
-            const cycleRoot = this.#getAsyncCycleRoot(this);
-            if (cycleRoot.#evaluationError) {
-                return;
-            }
-            if (this.#async) {
-                void this.#executeAsyncModule();
-            } else {
-                try {
-                    const value = this.#executeModule();
-                    assert(
-                        value === undefined,
-                        "synchronous executeModule must not return a value",
-                    );
-                    this.#asyncModuleExecutionFulfilled();
-                } catch (error: any) {
-                    this.#asyncModuleExectionRejected(error);
-                }
-            }
+        if (module.#status.name === "evaluated") {
+            module = module.#status.cycleRoot;
         }
-    };
-
-    #asyncModuleExecutionFulfilled = (): void => {
-        assert(this.#status.name === "evaluated");
-        if (!this.#status.asyncEvaluating) {
-            assert(this.#evaluationError !== undefined);
-            return;
-        }
-        assert(this.#evaluationError === undefined);
-        this.#status.asyncEvaluating = false;
-        for (const parent of this.#status.asyncParentModules) {
-            parent.#onDependencyFinishedSuccessfully();
-        }
-        if (this.#topLevelCapability) {
-            assert(this.#status.dfsIndex === this.#status.dfsAncestorIndex);
-            this.#topLevelCapability.resolve();
-        }
-    };
-
-    #asyncModuleExectionRejected = (error: any | any): void => {
-        assert(this.#status.name === "evaluated");
-        if (!this.#status.asyncEvaluating) {
-            assert(this.#evaluationError !== undefined);
-            return;
-        }
-        assert(this.#evaluationError === undefined);
-        this.#evaluationError = { error };
-        this.#status.asyncEvaluating = false;
-        for (const parent of this.#status.asyncParentModules) {
-            parent.#asyncModuleExectionRejected(error);
-        }
-        if (this.#topLevelCapability) {
-            assert(this.#status.dfsIndex === this.#status.dfsAncestorIndex);
-            this.#topLevelCapability.reject(error);
-        }
-    };
-
-    #executeAsyncModule = async (): Promise<void> => {
-        assert(
-            this.#status.name === "evaluating"
-            || this.#status.name === "evaluated",
-        );
-        assert(this.#async);
-        this.#status.asyncEvaluating = true;
-        try {
-            await this.#executeModule();
-            this.#asyncModuleExecutionFulfilled();
-        } catch (error: any) {
-            this.#asyncModuleExectionRejected(error);
-        }
-    };
-
-    #executeOtherModule = async (module: Module): Promise<void> => {
-        try {
-            await module.evaluate();
-            this.#onDependencyFinishedSuccessfully();
-        } catch (error: any) {
-            this.#asyncModuleExectionRejected(error);
-        }
-    };
-
-    #executeRequiredModule = (
-        requiredModule: Module,
-        stack: Array<CyclicModule>,
-        index: number,
-    ): number => {
-        assert(this.#status.name === "evaluating");
-        if (CyclicModule.isCyclicModule(requiredModule)) {
-            index = requiredModule.#innerModuleEvaluation(stack, index);
-            assert(
-                requiredModule.#status.name === "evaluating"
-                || requiredModule.#status.name === "evaluated",
-            );
-            if (requiredModule.#status.name === "evaluating") {
-                assert(stack.includes(requiredModule));
-            }
-            if (requiredModule.#status.name === "evaluating") {
-                this.#status.dfsAncestorIndex = Math.min(
-                    requiredModule.#status.dfsAncestorIndex,
-                    requiredModule.#status.dfsAncestorIndex,
-                );
-            } else if (requiredModule.#evaluationError) {
-                const rootModule = this.#getAsyncCycleRoot(
-                    requiredModule,
-                );
-                assert(rootModule.#status.name === "evaluated");
-                if (rootModule.#evaluationError) {
-                    throw rootModule.#evaluationError.error;
-                }
-            }
-            if (requiredModule.#status.asyncEvaluating) {
-                this.#status.pendingAsyncDependencies += 1;
-                requiredModule.#status.asyncParentModules.push(this);
-            }
-        } else {
-            this.#status.pendingAsyncDependencies += 1;
-            void this.#executeOtherModule(requiredModule);
-        }
-        return index;
-    };
-
-    #finalizeEvaluation = (stack: Array<CyclicModule>): void => {
-        assert(this.#status.name === "evaluating");
-        if (this.#status.dfsAncestorIndex === this.#status.dfsIndex) {
-            let done = false;
-            while (!done) {
-                const requiredModule = stack.pop()!;
-                assert(
-                    requiredModule.#status.name === "evaluating",
-                );
-                requiredModule.#status = {
-                    name: "evaluated",
-                    dfsIndex: requiredModule.#status.dfsIndex,
-                    dfsAncestorIndex: requiredModule.#status.dfsAncestorIndex,
-                    asyncParentModules: requiredModule.#status.asyncParentModules,
-                    asyncEvaluating: requiredModule.#status.asyncEvaluating,
-                    pendingAsyncDependencies: requiredModule.#status
-                        .pendingAsyncDependencies,
-                };
-
-                done = requiredModule === this;
-            }
-        }
-    };
-
-    #innerModuleEvaluation = (
-        stack: Array<CyclicModule>,
-        index: number,
-    ): number => {
-        if (this.#status.name === "evaluated") {
-            if (this.#evaluationError) {
-                throw this.#evaluationError.error;
-            }
-            return index;
-        }
-        if (this.#status.name === "evaluating") {
-            return index;
-        }
-        assert(this.#status.name === "linked");
-        this.#status = {
-            name: "evaluating",
-            dfsIndex: index,
-            dfsAncestorIndex: index,
-            pendingAsyncDependencies: 0,
-            asyncParentModules: [],
-            asyncEvaluating: false,
-        };
-
-        index += 1;
-        stack.push(this);
-        for (const required of this.#requestedModules) {
-            const requiredModule = this.#linkedModules.get(required);
-            assert(requiredModule !== undefined);
-            index = this.#executeRequiredModule(
-                requiredModule,
-                stack,
-                index,
-            );
-        }
-        if (this.#status.pendingAsyncDependencies > 0) {
-            this.#status.asyncEvaluating = true;
-        } else if (this.#async) {
-            void this.#executeAsyncModule();
-        } else {
-            const value = this.#executeModule();
-            assert(
-                value === undefined,
-                "executeModule for a synchronous module must not return a value",
-            );
-        }
-        this.#finalizeEvaluation(stack);
-        return index;
-    };
-
-    #evaluate = (): Promise<void> => {
-        assert(
-            this.#status.name === "linked"
-            || this.#status.name === "evaluated",
-        );
-        const module = this.#status.name === "evaluated"
-            ? this.#getAsyncCycleRoot(this)
-            : this;
-
         if (module.#topLevelCapability) {
             return module.#topLevelCapability.promise;
         }
-
         const stack: Array<CyclicModule> = [];
         const capability = new PromiseCapability<void>();
         module.#topLevelCapability = capability;
-
         try {
-            this.#innerModuleEvaluation(stack, 0);
+            CyclicModule.#innerModuleEvaluation(
+                module,
+                stack,
+                0,
+            );
             assert(module.#status.name === "evaluated");
             assert(module.#evaluationError === undefined);
             if (!module.#status.asyncEvaluating) {
-                capability.resolve(undefined);
+                capability.resolve();
             }
-        } catch (error: unknown) {
-            for (const module of stack) {
-                assert(module.#status.name === "evaluating");
-                module.#status = {
+            assert(stack.length === 0);
+        } catch (error: any) {
+            for (const m of stack) {
+                assert(m.#status.name === "evaluating");
+                m.#status = {
                     name: "evaluated",
-                    dfsIndex: module.#status.dfsIndex,
-                    dfsAncestorIndex: module.#status.dfsAncestorIndex,
-                    asyncEvaluating: module.#status.asyncEvaluating,
-                    asyncParentModules: module.#status.asyncParentModules,
-                    pendingAsyncDependencies: module.#status
+                    dfsIndex: m.#status.dfsIndex,
+                    dfsAncestorIndex: m.#status.dfsAncestorIndex,
+                    asyncEvaluating: m.#status.asyncEvaluating,
+                    asyncParentModules: m.#status.asyncParentModules,
+                    asyncEvaluatingId,
+                    pendingAsyncDependencies: m.#status
                         .pendingAsyncDependencies,
+                    cycleRoot: m,
                 };
+                asyncEvaluatingId += 1;
+                m.#evaluationError = { error };
+                capability.reject(error);
             }
-            capability.reject(error);
         }
+
         return capability.promise;
-    };
+    }
 }
 
 Object.freeze(CyclicModule);

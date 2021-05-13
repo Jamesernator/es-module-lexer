@@ -3,9 +3,9 @@ import path from "path";
 import type * as ModuleShim from "../dist/module-shim.js";
 
 export default class PathLoader {
-    #moduleShim: typeof ModuleShim;
-    #paths = new Map<ModuleShim.Module, string>();
-    #resolvedModules = new Map<string, Promise<ModuleShim.Module>>();
+    readonly #moduleShim: typeof ModuleShim;
+    readonly #paths = new Map<ModuleShim.Module, string>();
+    readonly #resolvedModules = new Map<string, Promise<ModuleShim.Module>>();
 
     constructor(moduleShim: typeof ModuleShim) {
         this.#moduleShim = moduleShim;
@@ -13,7 +13,7 @@ export default class PathLoader {
 
     #createModule = async (modulePath: string): Promise<ModuleShim.Module> => {
         const source = await fs.readFile(modulePath, "utf8");
-        const module = await this.#moduleShim.SourceTextModule.create({
+        const module = await this.#moduleShim.SourceTextModule.fromSource({
             source,
             resolveModule: (specifier, parent) => {
                 return this.resolve(specifier, parent);

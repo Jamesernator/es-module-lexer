@@ -74,7 +74,7 @@ export default class SourceTextModule extends CyclicModule {
         }
     }
 
-    static async create({
+    static async fromSource({
         source,
         resolveModule,
         importModuleDynamically,
@@ -171,9 +171,9 @@ export default class SourceTextModule extends CyclicModule {
         Object.freeze(this);
     }
 
-    #getExportedNames = (
+    #getExportedNames(
         exportStarSet: Set<Module>,
-    ): Array<string> => {
+    ): Array<string> {
         const linkedModules = CyclicModule.linkedModules(this);
         if (exportStarSet.has(this)) {
             return [];
@@ -199,12 +199,12 @@ export default class SourceTextModule extends CyclicModule {
             }
         }
         return [...exportedNames];
-    };
+    }
 
-    #resolveExport = (
+    #resolveExport(
         exportName: string,
         resolveSet: ResolveSet=[],
-    ): ResolvedExport => {
+    ): ResolvedExport {
         const linkedModules = CyclicModule.linkedModules(this);
         for (const record of resolveSet) {
             if (record.module === this && record.exportName === exportName) {
@@ -266,7 +266,7 @@ export default class SourceTextModule extends CyclicModule {
             }
         }
         return starResolution;
-    };
+    }
 
     get source(): string {
         return this.#source;

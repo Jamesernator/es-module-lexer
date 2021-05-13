@@ -114,7 +114,7 @@ export default abstract class Module {
         Object.freeze(this);
     }
 
-    #getModuleNamespace = (): any => {
+    #getModuleNamespace(): any {
         if (this.#namespace) {
             return this.#namespace;
         }
@@ -128,7 +128,7 @@ export default abstract class Module {
         }
         this.#namespace = createModuleNamespace(resolvedExports);
         return this.#namespace;
-    };
+    }
 
     get namespace(): any {
         return Module.namespace(this);

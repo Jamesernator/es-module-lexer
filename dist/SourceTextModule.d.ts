@@ -47,7 +47,7 @@ export declare type SourceTextModuleCreationOptions = {
 export default class SourceTextModule extends CyclicModule {
     #private;
     static isSourceTextModule(value: any): value is SourceTextModule;
-    static create({ source, resolveModule, importModuleDynamically, initializeImportMeta, }: SourceTextModuleCreationOptions): Promise<SourceTextModule>;
+    static fromSource({ source, resolveModule, importModuleDynamically, initializeImportMeta, }: SourceTextModuleCreationOptions): Promise<SourceTextModule>;
     constructor({ async, source, localExportEntries, indirectExportEntries, starExportEntries, moduleEvaluator, requestedModules, resolveModule, }: SourceTextModuleOptions);
     get source(): string;
 }

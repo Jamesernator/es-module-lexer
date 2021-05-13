@@ -1,17 +1,15 @@
-var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, privateMap) {
-    if (!privateMap.has(receiver)) {
-        throw new TypeError("attempted to get private field on non-instance");
-    }
-    return privateMap.get(receiver);
+var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 };
-var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (receiver, privateMap, value) {
-    if (!privateMap.has(receiver)) {
-        throw new TypeError("attempted to set private field on non-instance");
-    }
-    privateMap.set(receiver, value);
-    return value;
+var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+    if (kind === "m") throw new TypeError("Private method is not writable");
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
 };
-var _source, _localExportEntries, _indirectExportEntries, _starExportEntries, _moduleEvaluator, _getExportedNames, _resolveExport;
+var _SourceTextModule_instances, _SourceTextModule_source, _SourceTextModule_localExportEntries, _SourceTextModule_indirectExportEntries, _SourceTextModule_starExportEntries, _SourceTextModule_moduleEvaluator, _SourceTextModule_getExportedNames, _SourceTextModule_resolveExport;
 import CyclicModule from "./CyclicModule.js";
 import GeneratorModuleEvaluator from "./GeneratorModuleEvaluator.js";
 import Module, { AMBIGUOUS, NAMESPACE } from "./Module.js";
@@ -31,110 +29,33 @@ export default class SourceTextModule extends CyclicModule {
                 const linkedModules = CyclicModule.linkedModules(this);
                 return moduleEvaluator.execute(linkedModules);
             },
-            getExportedNames: (...args) => __classPrivateFieldGet(this, _getExportedNames).call(this, ...args),
-            resolveExport: (...args) => __classPrivateFieldGet(this, _resolveExport).call(this, ...args),
+            getExportedNames: (...args) => __classPrivateFieldGet(this, _SourceTextModule_instances, "m", _SourceTextModule_getExportedNames).call(this, ...args),
+            resolveExport: (...args) => __classPrivateFieldGet(this, _SourceTextModule_instances, "m", _SourceTextModule_resolveExport).call(this, ...args),
         });
-        _source.set(this, void 0);
-        _localExportEntries.set(this, void 0);
-        _indirectExportEntries.set(this, void 0);
-        _starExportEntries.set(this, void 0);
-        _moduleEvaluator.set(this, void 0);
-        _getExportedNames.set(this, (exportStarSet) => {
-            const linkedModules = CyclicModule.linkedModules(this);
-            if (exportStarSet.has(this)) {
-                return [];
-            }
-            exportStarSet.add(this);
-            const exportedNames = new Set();
-            for (const exportEntry of __classPrivateFieldGet(this, _localExportEntries)) {
-                exportedNames.add(exportEntry.exportName);
-            }
-            for (const exportEntry of __classPrivateFieldGet(this, _indirectExportEntries)) {
-                exportedNames.add(exportEntry.exportName);
-            }
-            for (const exportEntry of __classPrivateFieldGet(this, _starExportEntries)) {
-                const requestedModule = linkedModules.get(exportEntry.specifier);
-                const starNames = Module.getExportedNames(requestedModule, exportStarSet);
-                for (const name of starNames) {
-                    if (name !== "default") {
-                        exportedNames.add(name);
-                    }
-                }
-            }
-            return [...exportedNames];
-        });
-        _resolveExport.set(this, (exportName, resolveSet = []) => {
-            const linkedModules = CyclicModule.linkedModules(this);
-            for (const record of resolveSet) {
-                if (record.module === this && record.exportName === exportName) {
-                    return null;
-                }
-            }
-            resolveSet.push({ module: this, exportName });
-            for (const exportEntry of __classPrivateFieldGet(this, _localExportEntries)) {
-                if (exportEntry.exportName === exportName) {
-                    return {
-                        module: this,
-                        bindingName: exportEntry.localName,
-                        getBinding: __classPrivateFieldGet(this, _moduleEvaluator).getLocalBinding(exportEntry.exportName),
-                    };
-                }
-            }
-            for (const exportEntry of __classPrivateFieldGet(this, _indirectExportEntries)) {
-                if (exportEntry.exportName === exportName) {
-                    const importedModule = linkedModules
-                        .get(exportEntry.specifier);
-                    if (exportEntry.importName === NAMESPACE) {
-                        return {
-                            module: this,
-                            bindingName: NAMESPACE,
-                            getBinding: () => Module.namespace(importedModule),
-                        };
-                    }
-                    return Module.resolveExport(importedModule, exportEntry.importName, resolveSet);
-                }
-            }
-            if (exportName === "default") {
-                return null;
-            }
-            let starResolution = null;
-            for (const exportEntry of __classPrivateFieldGet(this, _starExportEntries)) {
-                const importedModule = linkedModules
-                    .get(exportEntry.specifier);
-                const resolution = Module.resolveExport(importedModule, exportName, resolveSet);
-                if (resolution === AMBIGUOUS) {
-                    return AMBIGUOUS;
-                }
-                if (resolution !== null) {
-                    if (starResolution === null) {
-                        starResolution = resolution;
-                    }
-                    else if (resolution.module !== starResolution.module
-                        || resolution.bindingName !== starResolution.bindingName) {
-                        return AMBIGUOUS;
-                    }
-                }
-            }
-            return starResolution;
-        });
-        __classPrivateFieldSet(this, _source, source);
-        __classPrivateFieldSet(this, _localExportEntries, localExportEntries);
-        __classPrivateFieldSet(this, _indirectExportEntries, indirectExportEntries);
-        __classPrivateFieldSet(this, _starExportEntries, starExportEntries);
-        __classPrivateFieldSet(this, _moduleEvaluator, moduleEvaluator);
+        _SourceTextModule_instances.add(this);
+        _SourceTextModule_source.set(this, void 0);
+        _SourceTextModule_localExportEntries.set(this, void 0);
+        _SourceTextModule_indirectExportEntries.set(this, void 0);
+        _SourceTextModule_starExportEntries.set(this, void 0);
+        _SourceTextModule_moduleEvaluator.set(this, void 0);
+        __classPrivateFieldSet(this, _SourceTextModule_source, source, "f");
+        __classPrivateFieldSet(this, _SourceTextModule_localExportEntries, localExportEntries, "f");
+        __classPrivateFieldSet(this, _SourceTextModule_indirectExportEntries, indirectExportEntries, "f");
+        __classPrivateFieldSet(this, _SourceTextModule_starExportEntries, starExportEntries, "f");
+        __classPrivateFieldSet(this, _SourceTextModule_moduleEvaluator, moduleEvaluator, "f");
         Object.freeze(this);
     }
     static isSourceTextModule(value) {
         try {
             // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-            __classPrivateFieldGet(value, _source);
+            __classPrivateFieldGet(value, _SourceTextModule_source, "f");
             return true;
         }
         catch {
             return false;
         }
     }
-    static async create({ source, resolveModule, importModuleDynamically, initializeImportMeta, }) {
+    static async fromSource({ source, resolveModule, importModuleDynamically, initializeImportMeta, }) {
         const parseResult = await parse(source);
         const moduleEntries = getModuleEntries(parseResult);
         const requestedModules = [
@@ -182,10 +103,87 @@ export default class SourceTextModule extends CyclicModule {
         return module;
     }
     get source() {
-        return __classPrivateFieldGet(this, _source);
+        return __classPrivateFieldGet(this, _SourceTextModule_source, "f");
     }
 }
-_source = new WeakMap(), _localExportEntries = new WeakMap(), _indirectExportEntries = new WeakMap(), _starExportEntries = new WeakMap(), _moduleEvaluator = new WeakMap(), _getExportedNames = new WeakMap(), _resolveExport = new WeakMap();
+_SourceTextModule_source = new WeakMap(), _SourceTextModule_localExportEntries = new WeakMap(), _SourceTextModule_indirectExportEntries = new WeakMap(), _SourceTextModule_starExportEntries = new WeakMap(), _SourceTextModule_moduleEvaluator = new WeakMap(), _SourceTextModule_instances = new WeakSet(), _SourceTextModule_getExportedNames = function _SourceTextModule_getExportedNames(exportStarSet) {
+    const linkedModules = CyclicModule.linkedModules(this);
+    if (exportStarSet.has(this)) {
+        return [];
+    }
+    exportStarSet.add(this);
+    const exportedNames = new Set();
+    for (const exportEntry of __classPrivateFieldGet(this, _SourceTextModule_localExportEntries, "f")) {
+        exportedNames.add(exportEntry.exportName);
+    }
+    for (const exportEntry of __classPrivateFieldGet(this, _SourceTextModule_indirectExportEntries, "f")) {
+        exportedNames.add(exportEntry.exportName);
+    }
+    for (const exportEntry of __classPrivateFieldGet(this, _SourceTextModule_starExportEntries, "f")) {
+        const requestedModule = linkedModules.get(exportEntry.specifier);
+        const starNames = Module.getExportedNames(requestedModule, exportStarSet);
+        for (const name of starNames) {
+            if (name !== "default") {
+                exportedNames.add(name);
+            }
+        }
+    }
+    return [...exportedNames];
+}, _SourceTextModule_resolveExport = function _SourceTextModule_resolveExport(exportName, resolveSet = []) {
+    const linkedModules = CyclicModule.linkedModules(this);
+    for (const record of resolveSet) {
+        if (record.module === this && record.exportName === exportName) {
+            return null;
+        }
+    }
+    resolveSet.push({ module: this, exportName });
+    for (const exportEntry of __classPrivateFieldGet(this, _SourceTextModule_localExportEntries, "f")) {
+        if (exportEntry.exportName === exportName) {
+            return {
+                module: this,
+                bindingName: exportEntry.localName,
+                getBinding: __classPrivateFieldGet(this, _SourceTextModule_moduleEvaluator, "f")
+                    .getLocalBinding(exportEntry.exportName),
+            };
+        }
+    }
+    for (const exportEntry of __classPrivateFieldGet(this, _SourceTextModule_indirectExportEntries, "f")) {
+        if (exportEntry.exportName === exportName) {
+            const importedModule = linkedModules
+                .get(exportEntry.specifier);
+            if (exportEntry.importName === NAMESPACE) {
+                return {
+                    module: this,
+                    bindingName: NAMESPACE,
+                    getBinding: () => Module.namespace(importedModule),
+                };
+            }
+            return Module.resolveExport(importedModule, exportEntry.importName, resolveSet);
+        }
+    }
+    if (exportName === "default") {
+        return null;
+    }
+    let starResolution = null;
+    for (const exportEntry of __classPrivateFieldGet(this, _SourceTextModule_starExportEntries, "f")) {
+        const importedModule = linkedModules
+            .get(exportEntry.specifier);
+        const resolution = Module.resolveExport(importedModule, exportName, resolveSet);
+        if (resolution === AMBIGUOUS) {
+            return AMBIGUOUS;
+        }
+        if (resolution !== null) {
+            if (starResolution === null) {
+                starResolution = resolution;
+            }
+            else if (resolution.module !== starResolution.module
+                || resolution.bindingName !== starResolution.bindingName) {
+                return AMBIGUOUS;
+            }
+        }
+    }
+    return starResolution;
+};
 Object.freeze(SourceTextModule);
 Object.freeze(SourceTextModule.prototype);
 //# sourceMappingURL=SourceTextModule.js.map

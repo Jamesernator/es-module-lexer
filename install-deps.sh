@@ -1,4 +1,5 @@
 #!/bin/bash
+sudo apt install cmake build-essential ninja-build gcc-multilib lld
 
 # Binaryen
 git clone https://github.com/WebAssembly/binaryen ./binaryen/

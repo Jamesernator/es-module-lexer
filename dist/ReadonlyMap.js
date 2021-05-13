@@ -1,39 +1,37 @@
-var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (receiver, privateMap, value) {
-    if (!privateMap.has(receiver)) {
-        throw new TypeError("attempted to set private field on non-instance");
-    }
-    privateMap.set(receiver, value);
-    return value;
+var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+    if (kind === "m") throw new TypeError("Private method is not writable");
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
 };
-var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, privateMap) {
-    if (!privateMap.has(receiver)) {
-        throw new TypeError("attempted to get private field on non-instance");
-    }
-    return privateMap.get(receiver);
+var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 };
-var _map;
+var _ReadonlyMap_map;
 export default class ReadonlyMap {
     constructor(map) {
-        _map.set(this, void 0);
-        __classPrivateFieldSet(this, _map, map);
+        _ReadonlyMap_map.set(this, void 0);
+        __classPrivateFieldSet(this, _ReadonlyMap_map, map, "f");
     }
     get(key) {
-        return __classPrivateFieldGet(this, _map).get(key);
+        return __classPrivateFieldGet(this, _ReadonlyMap_map, "f").get(key);
     }
     has(key) {
-        return __classPrivateFieldGet(this, _map).has(key);
+        return __classPrivateFieldGet(this, _ReadonlyMap_map, "f").has(key);
     }
     *entries() {
-        yield* __classPrivateFieldGet(this, _map).entries();
+        yield* __classPrivateFieldGet(this, _ReadonlyMap_map, "f").entries();
     }
     *values() {
-        yield* __classPrivateFieldGet(this, _map).values();
+        yield* __classPrivateFieldGet(this, _ReadonlyMap_map, "f").values();
     }
     *keys() {
-        yield* __classPrivateFieldGet(this, _map).keys();
+        yield* __classPrivateFieldGet(this, _ReadonlyMap_map, "f").keys();
     }
 }
-_map = new WeakMap();
+_ReadonlyMap_map = new WeakMap();
 Object.freeze(ReadonlyMap);
 Object.freeze(ReadonlyMap.prototype);
 //# sourceMappingURL=ReadonlyMap.js.map
